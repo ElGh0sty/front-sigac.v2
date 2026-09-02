@@ -25,10 +25,19 @@ import { ClasesAdminComponent } from './components/administrador/clases-admin/cl
 import { AyudantiasAdminComponent } from './components/administrador/ayudantias-admin/ayudantias-admin';
 import { ReportesComponent } from './components/administrador/reportes/reportes';
 
+// Nuevos componentes de Proceso de Aceptación de Ayudantía y Servicios
+import { ValidacionCoordinadorComponent } from './components/coordinador/validacion-coordinador/validacion-coordinador';
+import { ConfiguracionNotaMinimaComponent } from './components/coordinador/configuracion-nota-minima/configuracion-nota-minima';
+import { EvaluacionTribunalComponent } from './components/jurado/evaluacion-tribunal/evaluacion-tribunal';
+import { CargaMasivaEstudiantesComponent } from './components/administrador/carga-masiva/carga-masiva';
+import { InformesAyudantiaComponent } from './components/ayudante/informes-ayudantia/informes-ayudantia';
+import { RecuperarPasswordComponent } from './components/login/recuperar-password/recuperar-password';
+
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'recuperar-password', component: RecuperarPasswordComponent },
   {
     path: '',
     component: LayoutComponent,
@@ -40,16 +49,26 @@ export const routes: Routes = [
       { path: 'estudiante/materia/:id', component: MateriaDetalleComponent },
       { path: 'estudiante/horarios', component: HorariosComponent },
       { path: 'estudiante/mi-perfil', component: MiPerfilComponent },
+      { path: 'estudiante/informes', component: InformesAyudantiaComponent },
 
       // AYUDANTE / DOCENTE (Rutas específicas para gestión)
       { path: 'ayudante/materias', component: AyudanteMateriasComponent },
       { path: 'ayudante/materia/:id', component: MateriaDetalleComponent },
       { path: 'ayudante/horarios', component: HorariosComponent }, // Misma ruta, mismo componente unificado
       { path: 'ayudante/mi-perfil', component: MiPerfilComponent },
+      { path: 'ayudante/informes', component: InformesAyudantiaComponent },
       { path: 'docente/gestion-clases', component: GestionClasesComponent },
       { path: 'ayudante/gestion-ayudantia', component: GestionAyudantiaComponent },
       { path: 'docente/gestion-estudiantes', component: GestionEstudiantesComponent },
       { path: 'docente/gestion-estudiantes/:id', component: GestionEstudiantesComponent },
+      { path: 'docente/carga-masiva', component: CargaMasivaEstudiantesComponent },
+
+      // COORDINADOR / TRIBUNAL (JURADO)
+      { path: 'coordinador/validacion', component: ValidacionCoordinadorComponent },
+      { path: 'coordinador/tribunal', component: ValidacionCoordinadorComponent },
+      { path: 'coordinador/nota-minima', component: ConfiguracionNotaMinimaComponent },
+      { path: 'jurado/evaluacion', component: EvaluacionTribunalComponent },
+      { path: 'jurado/presentaciones', component: EvaluacionTribunalComponent },
 
       // ADMINISTRADOR
       { path: 'admin/solicitudes', component: SolicitudesComponent },
@@ -64,8 +83,10 @@ export const routes: Routes = [
       { path: 'admin/gestion-estudiantes', component: GestionEstudiantesComponent },
       { path: 'admin/gestion-estudiantes/:id', component: GestionEstudiantesComponent },
       { path: 'admin/reportes', component: ReportesComponent },
-
-
+      { path: 'admin/carga-masiva', component: CargaMasivaEstudiantesComponent },
+      { path: 'admin/validacion-coordinador', component: ValidacionCoordinadorComponent },
+      { path: 'admin/configuracion-nota-minima', component: ConfiguracionNotaMinimaComponent },
+      { path: 'admin/evaluacion-tribunal', component: EvaluacionTribunalComponent },
     ]
   },
   { path: '**', redirectTo: 'login' }

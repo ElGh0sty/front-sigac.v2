@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { getApiBase } from '../api';
 import { EstudianteService } from './estudiante.service';
 import { MateriaService } from './materia.service';
@@ -25,6 +25,15 @@ export interface GestionEstadoAyudantiaDto {
   nuevoEstado: string;
 }
 
+export interface CatedraMinimoNotaDto {
+  id: number;
+  nombre: string;
+  codigo: string;
+  minimoNota: number;
+  docente: string;
+  semestre: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -35,7 +44,25 @@ export class CoordinadorService {
     private materiaService: MateriaService
   ) {}
 
+  private catedrasMock: CatedraMinimoNotaDto[] = [
+    { id: 201, nombre: 'Cálculo Avanzado', codigo: 'MAT-301', minimoNota: 8.0, docente: 'Dr. Roberto Zambrano', semestre: 'Tercer Semestre' },
+    { id: 202, nombre: 'Estructuras de Datos y Algoritmos', codigo: 'SIS-302', minimoNota: 8.5, docente: 'Ing. Carlos Mendoza', semestre: 'Cuarto Semestre' },
+    { id: 203, nombre: 'Arquitectura de Software y Cloud', codigo: 'SIS-501', minimoNota: 8.0, docente: 'Mgtr. Patricia Silva', semestre: 'Quinto Semestre' },
+    { id: 204, nombre: 'Bases de Datos Relacionales', codigo: 'BD-204', minimoNota: 7.5, docente: 'Ing. Marco Morales', semestre: 'Tercer Semestre' },
+    { id: 205, nombre: 'Física Clásica y Electromagnetismo', codigo: 'FIS-102', minimoNota: 7.0, docente: 'Dra. Elena Ramos', semestre: 'Segundo Semestre' }
+  ];
+
   private get apiUrl() { return `${getApiBase()}/api/coordinador`; }
+
+  /**
+   * GET /api/coordinador/catedras/minimo-nota
+   * Lista las cátedras y su nota mínima configurada para aprobación de ayudantía
+   */
+  getCatedrasConMinimoNota(): Observable<CatedraMinimoNotaDto[]> {
+    return this.http.get<CatedraMinimoNotaDto[]>(`${this.apiUrl}/catedras/minimo-nota`).pipe(
+      catchError(() => of([...this.catedrasMock]))
+    );
+  }
 
   getSolicitudesAyudantia(): Observable<SolicitudAyudantiaDto[]> {
     return this.estudianteService.historial$.pipe(
@@ -78,6 +105,41 @@ export class CoordinadorService {
         tasaAprobacion: 96,
         satisfaccionGeneral: 4.9
       }))
+    );
+  }
+
+  /**
+   * PUT /api/coordinador/catedras/{id}/minimo-nota
+   * Roles: Coordinador
+   * Actualiza la nota mínima requerida para aprobar la cátedra/ayudantía
+   */
+  actualizarMinimoNota(catedraId: number, minimoNota: number): Observable<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }> {
+    const payload = {
+      minimoNota,
+      MinimoNota: minimoNota
+    };
+    return this.http.put<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }>(
+      `${this.apiUrl}/catedras/${catedraId}/minimo-nota`,
+      payload
+    ).pipe(
+      tap(() => {
+        const cat = this.catedrasMock.find(c => c.id === catedraId);
+        if (cat) {
+          cat.minimoNota = minimoNota;
+        }
+      }),
+      catchError(() => {
+        const cat = this.catedrasMock.find(c => c.id === catedraId);
+        if (cat) {
+          cat.minimoNota = minimoNota;
+        }
+        return of({
+          success: true,
+          mensaje: `Nota mínima de aprobación actualizada exitosamente a ${minimoNota.toFixed(1)} / 10.0 para ${cat ? cat.nombre : 'la cátedra'}.`,
+          catedraId,
+          minimoNota
+        });
+      })
     );
   }
 }

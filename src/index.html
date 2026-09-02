@@ -7,16 +7,33 @@
     <script>
       (function() {
         try {
-          var desc = Object.getOwnPropertyDescriptor(window, 'fetch') ||
-                     (window.Window && Object.getOwnPropertyDescriptor(Window.prototype, 'fetch'));
-          if (desc && !desc.writable && !desc.set && desc.configurable) {
-            var orig = window.fetch;
-            Object.defineProperty(window, 'fetch', {
-              get: function() { return orig; },
-              set: function(fn) { orig = fn; },
-              configurable: true,
-              enumerable: true
-            });
+          var origFetch = (typeof window !== 'undefined' && window.fetch) ? window.fetch.bind(window) : null;
+          var currentFetch = origFetch;
+
+          function defineFetchAccessor(target) {
+            if (!target) return;
+            try {
+              Object.defineProperty(target, 'fetch', {
+                get: function() {
+                  return currentFetch;
+                },
+                set: function(fn) {
+                  currentFetch = fn;
+                },
+                configurable: true,
+                enumerable: true
+              });
+            } catch (err) {}
+          }
+
+          if (typeof window !== 'undefined') {
+            defineFetchAccessor(window);
+            if (window.Window && window.Window.prototype) {
+              defineFetchAccessor(window.Window.prototype);
+            }
+          }
+          if (typeof globalThis !== 'undefined' && globalThis !== window) {
+            defineFetchAccessor(globalThis);
           }
         } catch(e) {}
       })();
