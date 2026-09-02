@@ -1,0 +1,63 @@
+<div class="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Mis Materias Inscritas</h1>
+      <p class="text-slate-500 text-sm mt-1">Accede a tus aulas virtuales, materiales educativos, actividades y notas.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+        {{ materias.length }} Materias Activas
+      </span>
+    </div>
+  </div>
+
+  <div *ngIf="materias.length === 0" class="text-center py-16 px-4 glass-card rounded-2xl border border-slate-200">
+    <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
+      <i class="fa-solid fa-graduation-cap text-3xl"></i>
+    </div>
+    <h3 class="text-base font-bold text-slate-800">No tienes materias registradas</h3>
+    <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Tus materias inscritas aparecerán aquí en cuanto el administrador o docente las habilite.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" *ngIf="materias.length > 0">
+    <div *ngFor="let materia of materias"
+         class="glass-card rounded-2xl p-6 border border-slate-200/90 hover:border-accent hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+         [routerLink]="['/estudiante/materia', materia.id]">
+      
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-2xs">
+            <i class="fa-solid fa-book-open text-xl"></i>
+          </div>
+          <span class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
+            {{ materia.codigo }}
+          </span>
+        </div>
+
+        <h2 class="text-lg font-bold text-slate-900 group-hover:text-accent transition-colors leading-snug">
+          {{ materia.nombre }}
+        </h2>
+        
+        <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+          {{ materia.descripcion || 'Sin descripción disponible para esta cátedra.' }}
+        </p>
+      </div>
+
+      <div class="mt-5 pt-4 border-t border-slate-100 space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-500">
+          <span class="flex items-center gap-1.5 truncate">
+            <i class="fa-solid fa-chalkboard-user text-slate-400"></i>
+            {{ materia.docente }}
+          </span>
+          <span class="font-semibold text-slate-700">{{ materia.creditos || 4 }} Cr.</span>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1 font-semibold text-accent group-hover:translate-x-0.5 transition-transform">
+          <span>Ingresar al Aula Virtual</span>
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

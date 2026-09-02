@@ -1,0 +1,89 @@
+<div class="p-6 lg:p-8 space-y-5">
+  <!-- Cabecera -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-slate-900">Semana Actual</h2>
+      <p class="text-xs text-slate-500 mt-0.5">
+        {{ esAyudante ? 'Haz clic en una celda vacía para reservar una hora.' : 'Haz clic en una clase para ver detalles' }}
+      </p>
+    </div>
+    <button *ngIf="esAyudante" (click)="crearClase()"
+            class="py-2 px-4 bg-accent text-white rounded-lg hover:bg-accent-dim transition-colors font-medium text-sm">
+      Crear Clase
+    </button>
+  </div>
+
+  <!-- Cuadrícula visual -->
+  <div class="glass-card rounded-2xl overflow-hidden border border-slate-200">
+    <div class="overflow-x-auto">
+      <div class="grid" [style.gridTemplateColumns]="'60px repeat(' + dias.length + ', 1fr)'" [style.minWidth.px]="60 + 120 * dias.length">
+        <!-- Encabezados -->
+        <div class="bg-slate-50 border-b border-slate-200 p-3 text-[10px] font-semibold text-slate-400 uppercase flex items-center justify-center">Hora</div>
+        <div *ngFor="let d of dias" class="bg-slate-50 border-b border-slate-200 border-l border-slate-100 p-3 text-[10px] font-semibold text-slate-700 uppercase flex items-center justify-center">{{ d }}</div>
+
+        <!-- Filas de horas -->
+        <ng-container *ngFor="let h of horas; let i = index">
+          <div class="border-b border-slate-100 p-2 text-xs text-slate-400 font-medium flex items-start justify-center h-[60px]">{{ h }}</div>
+          <div *ngFor="let d of dias" class="border-b border-slate-100 border-l border-slate-100/50 relative h-[60px] p-1">
+
+            <!-- Lógica para mostrar Clases Ocupadas -->
+            <!-- PARA ESTUDIANTE: Usa 'clasesEstudiante' -->
+            <ng-container *ngIf="!esAyudante && getClaseEstudiante(d, h) as clase">
+              <div class="absolute inset-1 rounded-lg bg-blue-100 border border-blue-200 p-1.5 text-left cursor-default">
+                <div class="flex items-center gap-1 mb-0.5">
+                  <span class="text-[10px] font-bold truncate text-blue-700">{{ clase.materia }}</span>
+                </div>
+                <p class="text-[9px] text-slate-500">{{ clase.plataforma || 'Aula ' + clase.aula }}</p>
+              </div>
+            </ng-container>
+
+            <!-- PARA AYUDANTE/DOCENTE: Usa 'horariosOcupados' (con el nombre o 'Ocupado') -->
+            <ng-container *ngIf="esAyudante && getClaseEnCelda(d, h) as clase">
+              <div class="absolute inset-1 rounded-lg p-1.5 text-left cursor-default flex flex-col justify-center"
+                   [ngClass]="clase.esMiClase ? 'bg-blue-100 border border-blue-200' : 'bg-slate-100 border border-slate-200'">
+                <div class="flex items-center gap-1 mb-0.5">
+      <span class="text-[10px] font-bold truncate" [ngClass]="clase.esMiClase ? 'text-blue-700' : 'text-slate-500'">
+        {{ clase.esMiClase ? clase.materia : 'Ocupado' }}
+      </span>
+                </div>
+                <p class="text-[9px] text-slate-500" *ngIf="clase.esMiClase">
+                  {{ clase.plataforma || 'Aula ' + clase.aula }}
+                </p>
+              </div>
+            </ng-container>
+
+            <!-- Lógica para Celdas Vacías (Solo seleccionable si es Ayudante) -->
+            <div *ngIf="!getClaseEnCelda(d, h)"
+                 (click)="toggleHora(d, h)"
+                 class="absolute inset-1 rounded-lg border-2 border-transparent transition-all cursor-pointer flex items-center justify-center text-[10px] font-medium"
+                 [ngClass]="{
+                   'bg-accent/20 border-accent border-dashed text-accent': esAyudante && seleccionadas.has(d + '|' + h),
+                   'hover:bg-slate-50': esAyudante && !seleccionadas.has(d + '|' + h),
+                   'cursor-default': !esAyudante
+                 }">
+              <span *ngIf="esAyudante && seleccionadas.has(d + '|' + h)" class="text-[10px] font-medium text-accent">
+                Seleccionado
+              </span>
+            </div>
+
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen de selección (solo para ayudante) -->
+  <div *ngIf="esAyudante && seleccionadas.size > 0" class="p-4 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-200 mt-4">
+    <div>
+      <p class="text-sm text-slate-600">Horas seleccionadas:</p>
+      <div class="flex flex-wrap gap-2 mt-1">
+        <span *ngFor="let key of seleccionadas" class="px-2 py-1 bg-accent/10 text-accent rounded text-xs font-medium">
+          {{ key.replace('|', ' - ') }}
+        </span>
+      </div>
+    </div>
+    <button (click)="crearClase()" class="py-2 px-4 bg-accent text-white rounded-lg hover:bg-accent-dim transition-colors font-medium text-sm">
+      Crear Clase
+    </button>
+  </div>
+</div>

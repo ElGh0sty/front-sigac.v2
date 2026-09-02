@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>SIGAC</title>
+    <base href="/" />
+    <script>
+      (function() {
+        try {
+          var desc = Object.getOwnPropertyDescriptor(window, 'fetch') ||
+                     (window.Window && Object.getOwnPropertyDescriptor(Window.prototype, 'fetch'));
+          if (desc && !desc.writable && !desc.set && desc.configurable) {
+            var orig = window.fetch;
+            Object.defineProperty(window, 'fetch', {
+              get: function() { return orig; },
+              set: function(fn) { orig = fn; },
+              configurable: true,
+              enumerable: true
+            });
+          }
+        } catch(e) {}
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Sistema de Gestión Académica y Control (SIGAC) - Plataforma para administración de materias, clases, ayudantías, seguimiento y reportes." />
+    <meta property="og:title" content="SIGAC" />
+    <meta property="og:description" content="Sistema de Gestión Académica y Control (SIGAC) - Plataforma para administración de materias, clases, ayudantías, seguimiento y reportes." />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>

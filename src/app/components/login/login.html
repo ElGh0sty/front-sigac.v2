@@ -1,0 +1,189 @@
+<div class="bg-slate-50 text-slate-900 antialiased min-h-screen flex items-center justify-center p-4 selection:bg-accent selection:text-white">
+
+  <div class="w-full max-w-md">
+
+    <!-- Logo Area (Corregido con ruta absoluta) -->
+    <div class="flex flex-col items-center mb-8">
+      <!-- Asegúrate de que el archivo esté en: src/assets/logo-sigac.png -->
+      <img
+        src="/logo-sigac.png"
+        alt="SIGAC Logo"
+        width="80"
+        height="80"
+        class="object-contain mb-4 rounded-2xl shadow-sm border border-slate-200 bg-white"
+      />
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">SIGAC</h1>
+      <p class="text-slate-500 mt-2 text-center">Sistema de Gestión Académica Centralizado</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="glass-card rounded-3xl p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+      <div class="absolute -top-24 -right-24 w-48 h-48 bg-accent/5 rounded-full blur-3xl"></div>
+
+      <form (ngSubmit)="onLogin()" class="space-y-6 relative z-10">
+        <!-- Error Alert -->
+        <div *ngIf="errorMessage" class="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2.5">
+          <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Campo Usuario -->
+        <div>
+          <label for="username" class="block text-sm font-medium text-slate-700 mb-2">Usuario</label>
+          <div class="relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent transition-colors">
+              <i class="fa-regular fa-envelope"></i>
+            </div>
+            <input type="text" id="username" name="username" [(ngModel)]="credentials.username" placeholder="nombre.usuario" required class="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all placeholder:text-slate-400 text-slate-900" />
+          </div>
+        </div>
+
+        <!-- Campo Contraseña -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label for="password" class="block text-sm font-medium text-slate-700">Contraseña</label>
+            <a href="#" class="text-xs text-accent hover:text-accent-dim transition-colors font-medium">¿Olvidaste tu contraseña?</a>
+          </div>
+          <div class="relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent transition-colors">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              [(ngModel)]="credentials.password"
+              required
+              class="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all placeholder:text-slate-400 text-slate-900"
+              placeholder="••••••••"
+            />
+          </div>
+        </div>
+
+        <!-- Checkbox -->
+        <div class="flex items-center">
+          <input type="checkbox" id="remember" class="w-4 h-4 rounded border-slate-300 bg-white text-accent focus:ring-accent/20 accent-accent" />
+          <label for="remember" class="ml-2 text-sm text-slate-600">Mantener sesión iniciada</label>
+        </div>
+
+        <!-- Botón de Acceso -->
+        <button
+          type="submit"
+          [disabled]="isLoading"
+          class="w-full py-3.5 px-4 bg-accent hover:bg-accent-dim text-white font-bold rounded-xl shadow-lg shadow-accent/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group"
+        >
+          <span *ngIf="!isLoading">Acceder con Credenciales</span>
+          <span *ngIf="isLoading">Cargando...</span>
+          <i class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform" *ngIf="!isLoading"></i>
+        </button>
+
+      </form>
+
+      <!-- Modo de Prueba / Acceso Rápido por Rol -->
+      <div class="mt-6 pt-5 border-t border-slate-100 relative z-10">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Acceso Directo de Prueba
+          </span>
+          <span class="text-[11px] text-slate-400">Sin backend activo</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            (click)="ingresarComoDemo('Estudiante')"
+            class="p-2.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group"
+          >
+            <div class="flex items-center gap-2 mb-0.5">
+              <i class="fa-solid fa-user-graduate text-xs text-blue-600"></i>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-blue-700">Estudiante</span>
+            </div>
+            <p class="text-[10px] text-slate-400 line-clamp-1">Materias, actividades</p>
+          </button>
+
+          <button
+            type="button"
+            (click)="ingresarComoDemo('Docente')"
+            class="p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl text-left transition-all group"
+          >
+            <div class="flex items-center gap-2 mb-0.5">
+              <i class="fa-solid fa-chalkboard-user text-xs text-emerald-600"></i>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-emerald-700">Docente</span>
+            </div>
+            <p class="text-[10px] text-slate-400 line-clamp-1">Clases, asistencia</p>
+          </button>
+
+          <button
+            type="button"
+            (click)="ingresarComoDemo('Ayudante')"
+            class="p-2.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-xl text-left transition-all group"
+          >
+            <div class="flex items-center gap-2 mb-0.5">
+              <i class="fa-solid fa-handshake-angle text-xs text-purple-600"></i>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-purple-700">Ayudante</span>
+            </div>
+            <p class="text-[10px] text-slate-400 line-clamp-1">Bitácoras, informes</p>
+          </button>
+
+          <button
+            type="button"
+            (click)="ingresarComoDemo('Administrador')"
+            class="p-2.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl text-left transition-all group"
+          >
+            <div class="flex items-center gap-2 mb-0.5">
+              <i class="fa-solid fa-shield-halved text-xs text-amber-600"></i>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-amber-700">Administrador</span>
+            </div>
+            <p class="text-[10px] text-slate-400 line-clamp-1">Solicitudes, reportes</p>
+          </button>
+        </div>
+      </div>
+
+      <!-- Backend Connection Status / Config -->
+      <div class="mt-6 pt-4 border-t border-slate-100 relative z-10">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2 text-slate-500">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Backend: <strong class="text-slate-700 font-mono">{{ currentBackendUrl }}</strong></span>
+          </div>
+          <button (click)="toggleBackendConfig()" type="button" class="text-accent hover:underline font-medium">
+            {{ showBackendConfig ? 'Cerrar' : 'Cambiar' }}
+          </button>
+        </div>
+
+        <div *ngIf="showBackendConfig" class="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <p class="text-xs text-slate-600 font-medium">Seleccionar puerto / URL del Backend (.NET en Visual Studio):</p>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" (click)="seleccionarBackend('http://localhost:5291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+              :5291 (HTTP Local)
+            </button>
+            <button type="button" (click)="seleccionarBackend('https://localhost:7291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+              :7291 (HTTPS Local)
+            </button>
+            <button type="button" (click)="seleccionarBackend('http://localhost:5000')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+              :5000 (Kestrel)
+            </button>
+            <button type="button" (click)="seleccionarBackend('https://localhost:5001')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+              :5001 (Kestrel SSL)
+            </button>
+          </div>
+
+          <div class="flex gap-1.5 pt-1">
+            <input type="text" [(ngModel)]="customBackendUrl" name="customBackendUrl" placeholder="http://localhost:XXXX o túnel Pinggy" class="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-accent font-mono text-slate-800" />
+            <button type="button" (click)="guardarBackend()" class="px-3 py-1.5 text-xs bg-accent text-white font-medium rounded-lg hover:bg-accent-dim">
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Info -->
+    <!--<p class="mt-8 text-center text-sm text-slate-600">
+      ¿Eres nuevo en la institución?
+      <a href="#" class="text-accent font-semibold hover:underline transition-colors">Solicita tus credenciales</a>
+    </p>
+    -->
+
+  </div>
+</div>

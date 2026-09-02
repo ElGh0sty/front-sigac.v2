@@ -1,0 +1,38 @@
+<aside class="w-full bg-white flex flex-col shrink-0 z-20 relative border-l border-slate-200">
+  <div class="h-[72px] flex items-center px-6 shrink-0 border-b border-slate-200">
+    <h2 class="text-sm font-semibold text-slate-900">Agenda Próxima</h2>
+  </div>
+  <div class="flex-1 overflow-y-auto p-5 space-y-6">
+
+    <!-- NOTIFICACIONES UNIFICADAS -->
+    <div>
+      <h3 class="text-xs font-semibold tracking-wider text-slate-400 uppercase mb-3">Notificaciones</h3>
+      <div class="space-y-3">
+        <div *ngFor="let noti of notificaciones"
+             class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all"
+             (click)="irADetalle(noti)">
+          <p class="text-sm font-semibold text-slate-900">{{ noti.titulo }}</p>
+          <p class="text-[11px] text-slate-500 mt-0.5">{{ noti.descripcion }}</p>
+          <div class="flex items-center justify-between mt-2">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full flex items-center gap-1.5"
+                              [ngClass]="{
+                                'bg-amber-50 text-amber-600 border border-amber-200': noti.tipo === 'actividad',
+                                'bg-blue-50 text-blue-600 border border-blue-200': noti.tipo === 'recurso',
+                                'bg-emerald-50 text-emerald-600 border border-emerald-200': noti.tipo === 'clase'
+                              }">
+                          <i class="fa-solid text-[9px]"
+                             [ngClass]="{
+                               'fa-clock': noti.tipo === 'actividad',
+                               'fa-file': noti.tipo === 'recurso',
+                               'fa-video': noti.tipo === 'clase'
+                             }"></i>
+                          {{ noti.tipo }}
+                        </span>
+            <span class="text-xs text-slate-400">Ver detalles →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</aside>

@@ -1,0 +1,170 @@
+<div class="bg-surface-50 text-slate-900 antialiased min-h-screen overflow-hidden flex flex-col md:flex-row selection:bg-accent selection:text-white"
+     [ngClass]="{'overflow-hidden': menuAbierto}">
+
+  <!-- OVERLAY (Fondo oscuro para móvil) -->
+  <div *ngIf="menuAbierto"
+       class="md:hidden fixed inset-0 bg-black/30 z-20 transition-opacity duration-300"
+       (click)="menuAbierto = false">
+  </div>
+
+  <!-- LEFT SIDEBAR (Menú Lateral) -->
+  <aside class="w-full md:w-[260px] bg-white border-r border-slate-200 flex flex-col shrink-0 z-30 fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out"
+         [ngClass]="menuAbierto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+
+    <!-- Botón de cerrar (solo en móvil) -->
+    <button class="md:hidden absolute top-4 right-4 text-slate-500 hover:text-slate-900" (click)="menuAbierto = false">
+      <i class="fa-solid fa-xmark text-2xl"></i>
+    </button>
+
+    <!-- Logo en el Sidebar -->
+    <div class="h-[72px] flex items-center px-6 shrink-0 border-b border-slate-200">
+      <div class="flex items-center gap-3">
+        <img src="/logo-sigac.png" alt="SIGAC" class="w-8 h-8 object-contain" />
+        <span class="font-bold tracking-tight text-xl text-slate-900">SIGAC</span>
+      </div>
+    </div>
+
+    <!-- Menú de Navegación (Dinámico por Rol) -->
+    <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+      <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">Panel Académico</p>
+
+      <!-- Opciones comunes para todos -->
+      <a routerLink="/dashboard" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+        <i class="fa-solid fa-house-chimney text-sm w-5 text-center"></i>
+        <span class="text-sm font-semibold">Inicio</span>
+      </a>
+
+      <!-- SECCIÓN: ESTUDIANTE NORMAL -->
+      <ng-container *ngIf="rol === 'Estudiante' && !esAyudante">
+        <a routerLink="/estudiante/materias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-book-open text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Mis Materias</span>
+        </a>
+        <a routerLink="/estudiante/horarios" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-calendar-days text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Horarios</span>
+        </a>
+        <a routerLink="/estudiante/mi-perfil" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-user text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Mi Perfil</span>
+        </a>
+      </ng-container>
+
+      <!-- SECCIÓN: AYUDANTE / DOCENTE -->
+      <ng-container *ngIf="esAyudante || rol === 'Docente'">
+
+        <a routerLink="/ayudante/materias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-book-open text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Mis Materias</span>
+        </a>
+        <a routerLink="/ayudante/horarios" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-calendar-days text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Horarios</span>
+        </a>
+        <a routerLink="/ayudante/mi-perfil" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-user text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Mi Perfil</span>
+        </a>
+
+        <!-- Gestión de Ayudantía / Clases -->
+        <div class="my-4 border-t border-slate-200 mx-2"></div>
+        <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">Gestión</p>
+
+        <a routerLink="/docente/gestion-clases" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-chalkboard-user text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Gestión de Clases</span>
+        </a>
+        <a routerLink="/docente/gestion-estudiantes" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-user-plus text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Gestionar Estudiantes</span>
+        </a>
+        <a routerLink="/ayudante/gestion-ayudantia" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
+          <i class="fa-solid fa-sliders text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Gestión de Ayudantía</span>
+        </a>
+      </ng-container>
+
+      <!-- SECCIÓN: ADMINISTRADOR -->
+      <ng-container *ngIf="rol === 'Administrador'">
+
+        <a routerLink="/admin/clases" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-school text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Clases</span>
+        </a>
+        <a routerLink="/admin/materias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-list text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Materias</span>
+        </a>
+        <a routerLink="/admin/ayudantias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-hand-holding-hand text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Ayudantías</span>
+        </a>
+        <a routerLink="/admin/reportes" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
+          <i class="fa-solid fa-chart-pie text-sm w-5 text-center"></i>
+          <span class="text-sm font-medium">Reportes</span>
+        </a>
+      </ng-container>
+    </nav>
+
+    <!-- Perfil del Usuario (Footer del Sidebar) -->
+    <div class="p-3 shrink-0 border-t border-slate-200">
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-100 transition-colors">
+        <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold border-2 border-white shadow-sm">AG</div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-slate-900 truncate">Alejandro García</p>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-medium text-emerald-600 border border-emerald-100 mt-0.5 uppercase">
+            {{ rol === 'Estudiante' && esAyudante ? 'Ayudante' : rol }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT (Contenido central) -->
+  <main class="flex-1 flex flex-col min-w-0 relative">
+    <!-- HEADER -->
+    <header class="h-[72px] border-b border-slate-200 flex items-center justify-between px-4 md:px-6 lg:px-8 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Botón de menú hamburguesa (móvil) -->
+        <button class="md:hidden text-slate-500 hover:text-slate-900" (click)="menuAbierto = true">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+        <div class="min-w-0 overflow-hidden"> <!-- <-- Importante -->
+          <h1 class="text-lg md:text-xl font-bold text-slate-900 tracking-tight truncate">
+            Bienvenido, {{ username || 'Alejandro' }}
+          </h1>
+          <p class="text-[10px] md:text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            Semestre Otoño 2024 · Semana 8
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- Selector de rol -->
+        <div class="flex items-center gap-2">
+          <select (change)="cambiarRol($any($event.target).value)"
+                  class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer shadow-sm">
+            <option value="Estudiante" [selected]="rol === 'Estudiante' && !esAyudante">Estudiante</option>
+            <option value="Ayudante" [selected]="esAyudante">Ayudante</option>
+            <option value="Docente" [selected]="rol === 'Docente'">Docente</option>
+            <option value="Administrador" [selected]="rol === 'Administrador'">Administrador</option>
+          </select>
+        </div>
+        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors relative">
+          <i class="fa-regular fa-bell"></i>
+          <span class="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500 border-2 border-white"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENIDO DINÁMICO -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR DINÁMICO -->
+  <!-- Si es Estudiante normal, usa el sidebar de estudiante. Si es Ayudante/Docente, usa el de ayudante -->
+  <app-right-sidebar *ngIf="rol === 'Estudiante' && !esAyudante" class="hidden xl:flex w-full xl:w-[340px] border-l border-slate-200"></app-right-sidebar>
+  <app-right-sidebar-ayudante *ngIf="esAyudante || rol === 'Docente'" class="hidden xl:flex w-full xl:w-[340px] border-l border-slate-200"></app-right-sidebar-ayudante>
+</div>
