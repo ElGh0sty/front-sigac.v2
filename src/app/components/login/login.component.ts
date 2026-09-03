@@ -21,16 +21,26 @@ export class LoginComponent implements OnInit {
   showBackendConfig = false;
   currentBackendUrl = '';
   customBackendUrl = '';
+  isTestingConnection = false;
+  testConnectionMessage = '';
+  testConnectionSuccess: boolean | null = null;
 
   constructor(private authService: AuthService, private router: Router) {}
 
   ngOnInit() {
-    this.currentBackendUrl = getApiBase() || 'http://localhost:3000/api';
-    this.customBackendUrl = this.currentBackendUrl;
+    this.actualizarBackendActual();
+  }
+
+  actualizarBackendActual() {
+    const base = getApiBase();
+    this.currentBackendUrl = base ? base : 'Modo Autónomo (Sin Backend)';
+    this.customBackendUrl = base || 'http://localhost:5291';
   }
 
   toggleBackendConfig() {
     this.showBackendConfig = !this.showBackendConfig;
+    this.testConnectionMessage = '';
+    this.testConnectionSuccess = null;
   }
 
   seleccionarBackend(url: string) {
@@ -41,17 +51,57 @@ export class LoginComponent implements OnInit {
   guardarBackend() {
     if (this.customBackendUrl.trim()) {
       setApiBase(this.customBackendUrl.trim());
-      this.currentBackendUrl = getApiBase();
-      this.showBackendConfig = false;
+      this.actualizarBackendActual();
       this.errorMessage = '';
+      this.testConnectionMessage = '';
+      this.testConnectionSuccess = null;
     }
   }
 
   restablecerBackendLocal() {
     setApiBase('');
-    this.currentBackendUrl = 'http://localhost:3000/api';
-    this.customBackendUrl = this.currentBackendUrl;
-    this.showBackendConfig = false;
+    this.actualizarBackendActual();
+    this.testConnectionMessage = '✓ Modo Autónomo activado. La aplicación funcionará sin necesidad de tener el backend abierto.';
+    this.testConnectionSuccess = true;
+    this.errorMessage = '';
+  }
+
+  probarConexion() {
+    const url = (this.customBackendUrl || '').trim();
+    if (!url) {
+      this.testConnectionMessage = 'Ingresa una URL válida para verificar.';
+      this.testConnectionSuccess = false;
+      return;
+    }
+
+    this.isTestingConnection = true;
+    this.testConnectionMessage = 'Probando conexión con el servidor...';
+    this.testConnectionSuccess = null;
+
+    const testUrl = `${url.replace(/\/+$/, '')}/api/materia`;
+    
+    // Intento con fetch y timeout corto para diagnosticar net::ERR_CONNECTION_REFUSED
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    fetch(testUrl, { method: 'GET', signal: controller.signal, mode: 'cors' })
+      .then(res => {
+        clearTimeout(timeoutId);
+        this.isTestingConnection = false;
+        if (res.ok || res.status === 401 || res.status === 403) {
+          this.testConnectionSuccess = true;
+          this.testConnectionMessage = `✓ Backend detectado y respondiendo correctamente en ${url} (HTTP ${res.status})`;
+        } else {
+          this.testConnectionSuccess = false;
+          this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}. Verifica que el endpoint /api/materia exista.`;
+        }
+      })
+      .catch(err => {
+        clearTimeout(timeoutId);
+        this.isTestingConnection = false;
+        this.testConnectionSuccess = false;
+        this.testConnectionMessage = `❌ No se pudo conectar a ${url} (ERR_CONNECTION_REFUSED). Verifica que tu proyecto backend en Visual Studio / .NET esté corriendo (F5 o dotnet run).`;
+      });
   }
 
   ingresarComoDemo(rol: 'Estudiante' | 'Docente' | 'Ayudante' | 'Administrador') {

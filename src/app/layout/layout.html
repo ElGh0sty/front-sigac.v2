@@ -174,7 +174,21 @@
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Indicador de Backend / Modo Autónomo -->
+        <button (click)="mostrarModalBackend = true"
+                type="button"
+                [title]="backendActual ? 'Conectado a ' + backendActual : 'Modo Autónomo Local (Sin Backend)'"
+                class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer"
+                [ngClass]="backendActual ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200' : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'">
+          <span class="w-2 h-2 rounded-full"
+                [ngClass]="backendActual ? 'bg-blue-500 animate-pulse' : 'bg-amber-500'"></span>
+          <span class="font-mono text-[11px] max-w-[110px] truncate">
+            {{ backendActual ? backendActual.replace('http://', '').replace('https://', '') : 'Modo Autónomo' }}
+          </span>
+          <i class="fa-solid fa-gear text-[10px] text-slate-400 ml-0.5"></i>
+        </button>
+
         <!-- Selector de rol -->
         <div class="flex items-center gap-2">
           <select (change)="cambiarRol($any($event.target).value)"
@@ -187,7 +201,8 @@
             <option value="Administrador" [selected]="rol === 'Administrador'">Administrador</option>
           </select>
         </div>
-        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors relative">
+        <button class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors relative cursor-pointer"
+                title="Centro de notificaciones">
           <i class="fa-regular fa-bell"></i>
           <span class="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500 border-2 border-white"></span>
         </button>
@@ -204,4 +219,133 @@
   <!-- Si es Estudiante normal, usa el sidebar de estudiante. Si es Ayudante/Docente, usa el de ayudante -->
   <app-right-sidebar *ngIf="rol === 'Estudiante' && !esAyudante" class="hidden xl:flex w-full xl:w-[340px] border-l border-slate-200"></app-right-sidebar>
   <app-right-sidebar-ayudante *ngIf="esAyudante || rol === 'Docente'" class="hidden xl:flex w-full xl:w-[340px] border-l border-slate-200"></app-right-sidebar-ayudante>
+
+  <!-- MODAL DE CONFIGURACIÓN DE BACKEND Y DIAGNÓSTICO -->
+  <div *ngIf="mostrarModalBackend"
+       class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 space-y-5 shadow-2xl relative"
+         (click)="$event.stopPropagation()">
+      
+      <!-- Cabecera del Modal -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold border border-blue-200">
+            <i class="fa-solid fa-server"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 leading-tight">Configuración del Servidor Backend</h3>
+            <p class="text-[11px] text-slate-500">Conexión con la API .NET / C# o modo autónomo</p>
+          </div>
+        </div>
+        <button (click)="mostrarModalBackend = false; mensajeBackend = ''"
+                class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs transition-colors cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Estado Actual -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+        <span class="text-slate-500 font-medium">Estado activo:</span>
+        <span class="font-mono font-bold"
+              [ngClass]="backendActual ? 'text-blue-700' : 'text-amber-700'">
+          {{ backendActual || 'Modo Autónomo Local (Sin Backend)' }}
+        </span>
+      </div>
+
+      <!-- Botón de Modo Autónomo -->
+      <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-600"></i> Modo Autónomo Local
+          </span>
+          <button (click)="activarModoAutonomo()"
+                  type="button"
+                  class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-2xs">
+            Activar sin backend
+          </button>
+        </div>
+        <p class="text-[11px] text-amber-800/80 leading-relaxed">
+          Usa este modo si no tienes Visual Studio abierto. Evita por completo los errores <code>net::ERR_CONNECTION_REFUSED</code> y permite navegar toda la aplicación con datos en memoria.
+        </p>
+      </div>
+
+      <!-- Selección de puerto rápido -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-slate-700 block">Conectar a puerto .NET local:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button (click)="guardarUrlBackend('http://localhost:5291')"
+                  type="button"
+                  class="p-2 text-xs bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left font-mono transition-all cursor-pointer">
+            <span class="font-bold text-slate-800 block">:5291</span>
+            <span class="text-[10px] text-slate-400">HTTP Estándar</span>
+          </button>
+          <button (click)="guardarUrlBackend('https://localhost:7291')"
+                  type="button"
+                  class="p-2 text-xs bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left font-mono transition-all cursor-pointer">
+            <span class="font-bold text-slate-800 block">:7291</span>
+            <span class="text-[10px] text-slate-400">HTTPS con SSL</span>
+          </button>
+          <button (click)="guardarUrlBackend('http://localhost:5000')"
+                  type="button"
+                  class="p-2 text-xs bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left font-mono transition-all cursor-pointer">
+            <span class="font-bold text-slate-800 block">:5000</span>
+            <span class="text-[10px] text-slate-400">Kestrel HTTP</span>
+          </button>
+          <button (click)="guardarUrlBackend('https://localhost:5001')"
+                  type="button"
+                  class="p-2 text-xs bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left font-mono transition-all cursor-pointer">
+            <span class="font-bold text-slate-800 block">:5001</span>
+            <span class="text-[10px] text-slate-400">Kestrel HTTPS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- URL Personalizada y Test -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-600">URL personalizada:</label>
+        <div class="flex gap-2">
+          <input type="text"
+                 [(ngModel)]="inputBackendUrl"
+                 placeholder="http://localhost:5291"
+                 class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20" />
+          <button (click)="probarConexionBackend()"
+                  [disabled]="probandoConexion"
+                  type="button"
+                  class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-colors cursor-pointer">
+            {{ probandoConexion ? 'Probando...' : 'Probar' }}
+          </button>
+          <button (click)="guardarUrlBackend(inputBackendUrl)"
+                  type="button"
+                  class="px-3 py-2 bg-accent hover:bg-accent-dim text-white text-xs font-bold rounded-xl transition-colors cursor-pointer">
+            Guardar
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje de prueba / diagnóstico -->
+      <div *ngIf="mensajeBackend"
+           class="p-3 rounded-xl text-xs font-medium"
+           [ngClass]="esExitoBackend ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'">
+        {{ mensajeBackend }}
+      </div>
+
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 leading-relaxed">
+        <strong class="text-slate-700 block mb-0.5">Diagnóstico del error en tu captura:</strong>
+        <code>net::ERR_CONNECTION_REFUSED</code> significa que ningún programa está escuchando en el puerto 5291. Para solucionarlo:
+        <ul class="list-disc pl-4 mt-1 space-y-0.5">
+          <li>Si tienes el backend de C#, dale a <strong>Iniciar / F5</strong> en Visual Studio.</li>
+          <li>Si no necesitas el backend ahora, pulsa <strong>"Activar sin backend"</strong> arriba.</li>
+        </ul>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="flex justify-end pt-2">
+        <button (click)="mostrarModalBackend = false"
+                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
 </div>

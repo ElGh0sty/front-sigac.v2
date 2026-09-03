@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MateriaDto, MateriaService } from '../../../services/materia.service';
+import { normalizarTexto } from '../../../utils/search.utils';
 
 @Component({
   selector: 'app-materias',
@@ -70,11 +71,14 @@ export class MateriasComponent implements OnInit, OnDestroy {
   }
 
   get materiasFiltradas(): MateriaDto[] {
+    const term = normalizarTexto(this.filtroTexto);
     return this.materias.filter(m => {
-      const cumpleTexto = !this.filtroTexto.trim() ||
-        m.nombre.toLowerCase().includes(this.filtroTexto.toLowerCase()) ||
-        m.codigo.toLowerCase().includes(this.filtroTexto.toLowerCase()) ||
-        (m.docente && m.docente.toLowerCase().includes(this.filtroTexto.toLowerCase()));
+      const cumpleTexto = !term ||
+        normalizarTexto(m.nombre).includes(term) ||
+        normalizarTexto(m.codigo).includes(term) ||
+        normalizarTexto(m.docente).includes(term) ||
+        normalizarTexto(m.descripcion).includes(term) ||
+        normalizarTexto(this.getAulaHorario(m)).includes(term);
       
       const cumpleSemestre = this.filtroSemestre === 'todos' ||
         (m.semestre && m.semestre === this.filtroSemestre);

@@ -50,7 +50,7 @@ const PROXY_CONFIG = {
           message: 'Backend local no disponible en 127.0.0.1:5291. Modo local activo.',
           offline: true
         }));
-        return req.url;
+        return false;
       }
       return null;
     }

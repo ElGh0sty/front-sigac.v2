@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { combineLatest, Subscription } from 'rxjs';
 import { MateriaDto, MateriaService } from '../../../services/materia.service';
 import { ClaseDto, ClaseService } from '../../../services/clase.service';
+import { normalizarTexto } from '../../../utils/search.utils';
 
 export interface GrupoClaseMaterias {
   claseNombre: string;
@@ -68,12 +69,13 @@ export class MateriasAdminComponent implements OnInit, OnDestroy {
   }
 
   get materiasFiltradas(): MateriaDto[] {
+    const term = normalizarTexto(this.filtroTexto);
     return this.materias.filter(m => {
-      const matchTexto = !this.filtroTexto.trim() ||
-        m.nombre.toLowerCase().includes(this.filtroTexto.toLowerCase()) ||
-        m.codigo.toLowerCase().includes(this.filtroTexto.toLowerCase()) ||
-        (m.docente && m.docente.toLowerCase().includes(this.filtroTexto.toLowerCase())) ||
-        (m.claseNombre && m.claseNombre.toLowerCase().includes(this.filtroTexto.toLowerCase()));
+      const matchTexto = !term ||
+        normalizarTexto(m.nombre).includes(term) ||
+        normalizarTexto(m.codigo).includes(term) ||
+        normalizarTexto(m.docente).includes(term) ||
+        normalizarTexto(m.claseNombre).includes(term);
 
       const matchClase = this.filtroClase === 'todas' ||
         (m.claseNombre && m.claseNombre === this.filtroClase) ||

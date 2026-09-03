@@ -143,36 +143,78 @@
       <div class="mt-6 pt-4 border-t border-slate-100 relative z-10">
         <div class="flex items-center justify-between text-xs">
           <div class="flex items-center gap-2 text-slate-500">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Backend: <strong class="text-slate-700 font-mono">{{ currentBackendUrl }}</strong></span>
+            <span class="w-2 h-2 rounded-full"
+                  [ngClass]="currentBackendUrl.includes('Modo Autónomo') ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'"></span>
+            <span class="truncate max-w-[220px]">
+              Servidor: <strong class="text-slate-700 font-mono text-[11px]">{{ currentBackendUrl }}</strong>
+            </span>
           </div>
-          <button (click)="toggleBackendConfig()" type="button" class="text-accent hover:underline font-medium">
-            {{ showBackendConfig ? 'Cerrar' : 'Cambiar' }}
+          <button (click)="toggleBackendConfig()" type="button" class="text-accent hover:underline font-medium cursor-pointer shrink-0">
+            {{ showBackendConfig ? 'Ocultar' : 'Configurar' }}
           </button>
         </div>
 
         <div *ngIf="showBackendConfig" class="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-          <p class="text-xs text-slate-600 font-medium">Seleccionar puerto / URL del Backend (.NET en Visual Studio):</p>
-          <div class="grid grid-cols-2 gap-1.5">
-            <button type="button" (click)="seleccionarBackend('http://localhost:5291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
-              :5291 (HTTP Local)
-            </button>
-            <button type="button" (click)="seleccionarBackend('https://localhost:7291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
-              :7291 (HTTPS Local)
-            </button>
-            <button type="button" (click)="seleccionarBackend('http://localhost:5000')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
-              :5000 (Kestrel)
-            </button>
-            <button type="button" (click)="seleccionarBackend('https://localhost:5001')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
-              :5001 (Kestrel SSL)
+          
+          <!-- Botón de Modo Autónomo -->
+          <div class="p-2.5 bg-white border border-amber-200 rounded-lg flex items-center justify-between gap-2 shadow-2xs">
+            <div class="min-w-0">
+              <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt text-amber-500"></i> Modo Autónomo Local
+              </span>
+              <p class="text-[10px] text-slate-500 mt-0.5">
+                Utiliza datos locales en memoria. No requiere tener Visual Studio o .NET abierto.
+              </p>
+            </div>
+            <button type="button"
+                    (click)="restablecerBackendLocal()"
+                    class="px-3 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-colors cursor-pointer shrink-0">
+              Activar
             </button>
           </div>
 
-          <div class="flex gap-1.5 pt-1">
-            <input type="text" [(ngModel)]="customBackendUrl" name="customBackendUrl" placeholder="http://localhost:XXXX o túnel Pinggy" class="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-accent font-mono text-slate-800" />
-            <button type="button" (click)="guardarBackend()" class="px-3 py-1.5 text-xs bg-accent text-white font-medium rounded-lg hover:bg-accent-dim">
-              Guardar
-            </button>
+          <div class="pt-1">
+            <p class="text-xs text-slate-600 font-medium">O conectar a Backend .NET local (Visual Studio):</p>
+            <div class="grid grid-cols-2 gap-1.5 mt-2">
+              <button type="button" (click)="seleccionarBackend('http://localhost:5291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+                :5291 (HTTP Local)
+              </button>
+              <button type="button" (click)="seleccionarBackend('https://localhost:7291')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+                :7291 (HTTPS Local)
+              </button>
+              <button type="button" (click)="seleccionarBackend('http://localhost:5000')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+                :5000 (Kestrel)
+              </button>
+              <button type="button" (click)="seleccionarBackend('https://localhost:5001')" class="px-2 py-1.5 text-xs bg-white hover:bg-accent/10 border border-slate-200 rounded-lg text-slate-700 text-left font-mono">
+                :5001 (Kestrel SSL)
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 pt-1">
+            <label class="text-[11px] font-semibold text-slate-500">URL personalizada o túnel:</label>
+            <div class="flex gap-1.5">
+              <input type="text" [(ngModel)]="customBackendUrl" name="customBackendUrl" placeholder="http://localhost:5291" class="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-accent font-mono text-slate-800" />
+              <button type="button" (click)="probarConexion()" [disabled]="isTestingConnection" class="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg border border-slate-300 transition-colors cursor-pointer">
+                {{ isTestingConnection ? 'Probando...' : 'Probar' }}
+              </button>
+              <button type="button" (click)="guardarBackend()" class="px-3 py-1.5 text-xs bg-accent text-white font-medium rounded-lg hover:bg-accent-dim cursor-pointer">
+                Guardar
+              </button>
+            </div>
+          </div>
+
+          <!-- Mensaje de prueba de conexión -->
+          <div *ngIf="testConnectionMessage"
+               class="p-2.5 rounded-lg text-xs font-medium"
+               [ngClass]="testConnectionSuccess ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'">
+            {{ testConnectionMessage }}
+          </div>
+
+          <!-- Nota informativa sobre ERR_CONNECTION_REFUSED -->
+          <div class="text-[10px] text-slate-500 bg-white/70 p-2.5 rounded-lg border border-slate-200/80 leading-relaxed">
+            <strong class="text-slate-700">¿Ves error ERR_CONNECTION_REFUSED en la consola?</strong><br>
+            Significa que nada está escuchando en el puerto 5291. Abre tu proyecto en Visual Studio y presiona <strong>F5</strong> (o ejecuta <code>dotnet run</code>). Si no tienes el backend a mano, presiona <strong>Activar Modo Autónomo</strong> arriba.
           </div>
         </div>
       </div>
