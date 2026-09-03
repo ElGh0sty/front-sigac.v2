@@ -1,0 +1,504 @@
+<div class="space-y-6 pb-12">
+  <!-- ENCABEZADO PRINCIPAL -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent">
+          <i class="fa-solid fa-graduation-cap text-[11px]"></i> Gestión Académica Unificada
+        </span>
+        <span class="text-xs text-slate-600 font-medium">Periodo 2026-2</span>
+      </div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Dashboard de Ayudantías e Informes</h1>
+      <p class="text-slate-500 text-sm mt-1 max-w-3xl">
+        Supervisión integral de solicitudes de ayudantía, seguimiento de ayudantes activos en cátedra y gestión oficial de resoluciones y anexos administrativos.
+      </p>
+    </div>
+
+    <!-- Acciones rápidas de cabecera -->
+    <div class="flex items-center gap-2.5 shrink-0">
+      <button (click)="exportarReporteGeneral()"
+              class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-2">
+        <i class="fa-solid fa-file-arrow-down text-slate-500"></i>
+        <span>Exportar Reporte</span>
+      </button>
+      <button (click)="abrirModalSubida()"
+              class="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-accent/25 flex items-center gap-2">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Subir Resolución / Anexo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ALERTA DE MENSAJE DE ÉXITO O ERROR -->
+  <div *ngIf="successMessage" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between text-sm animate-fade-in">
+    <div class="flex items-center gap-3">
+      <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+      <span class="font-medium">{{ successMessage }}</span>
+    </div>
+    <button (click)="successMessage = ''" class="text-emerald-500 hover:text-emerald-800">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div *ngIf="errorMessage" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between text-sm animate-fade-in">
+    <div class="flex items-center gap-3">
+      <i class="fa-solid fa-circle-exclamation text-rose-600 text-base"></i>
+      <span class="font-medium">{{ errorMessage }}</span>
+    </div>
+    <button (click)="errorMessage = ''" class="text-rose-500 hover:text-rose-800">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- TARJETAS DE RESUMEN RÁPIDO (KPIs) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 text-lg">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Solicitudes Pendientes</p>
+        <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ reporteMetricas.pendientes }}</p>
+        <p class="text-[11px] text-amber-600 font-medium">Requieren dictamen</p>
+      </div>
+    </div>
+
+    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 text-lg">
+        <i class="fa-solid fa-user-check"></i>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ayudantías Activas</p>
+        <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ ayudantiasActivas.length }}</p>
+        <p class="text-[11px] text-emerald-600 font-medium">En ejercicio actual</p>
+      </div>
+    </div>
+
+    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 text-lg">
+        <i class="fa-solid fa-file-signature"></i>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Anexos y Resoluciones</p>
+        <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ documentosAnexos.length }}</p>
+        <p class="text-[11px] text-blue-600 font-medium">Documentos homologados</p>
+      </div>
+    </div>
+
+    <div class="glass-card bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 text-lg">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cumplimiento Global</p>
+        <p class="text-2xl font-bold text-slate-900 mt-0.5">{{ reporteMetricas.tasaCumplimiento }}%</p>
+        <p class="text-[11px] text-indigo-600 font-medium">{{ reporteMetricas.horasRegistradasTotales }} hrs registradas</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SISTEMA DE PESTAÑAS (NAV-TABS MODERNAS Y ACCESIBLES) -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- Barra de pestañas -->
+    <div class="flex border-b border-slate-200 bg-slate-50/80 px-4 pt-2 overflow-x-auto gap-2">
+      <!-- PESTAÑA 1 -->
+      <button (click)="cambiarTab('solicitudes')"
+              [class.border-accent]="tabActiva === 'solicitudes'"
+              [class.text-accent]="tabActiva === 'solicitudes'"
+              [class.bg-white]="tabActiva === 'solicitudes'"
+              [class.border-transparent]="tabActiva !== 'solicitudes'"
+              [class.text-slate-600]="tabActiva !== 'solicitudes'"
+              class="flex items-center gap-2.5 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl hover:text-slate-900 cursor-pointer shrink-0">
+        <i class="fa-solid fa-clipboard-check text-base"></i>
+        <span>Gestión de Solicitudes</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+              [ngClass]="tabActiva === 'solicitudes' ? 'bg-accent text-white' : 'bg-slate-200 text-slate-700'">
+          {{ solicitudes.length }}
+        </span>
+      </button>
+
+      <!-- PESTAÑA 2 -->
+      <button (click)="cambiarTab('activas')"
+              [class.border-accent]="tabActiva === 'activas'"
+              [class.text-accent]="tabActiva === 'activas'"
+              [class.bg-white]="tabActiva === 'activas'"
+              [class.border-transparent]="tabActiva !== 'activas'"
+              [class.text-slate-600]="tabActiva !== 'activas'"
+              class="flex items-center gap-2.5 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl hover:text-slate-900 cursor-pointer shrink-0">
+        <i class="fa-solid fa-users-gear text-base"></i>
+        <span>Ayudantías Activas (Seguimiento)</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+              [ngClass]="tabActiva === 'activas' ? 'bg-accent text-white' : 'bg-slate-200 text-slate-700'">
+          {{ ayudantiasActivas.length }}
+        </span>
+      </button>
+
+      <!-- PESTAÑA 3 -->
+      <button (click)="cambiarTab('reportes')"
+              [class.border-accent]="tabActiva === 'reportes'"
+              [class.text-accent]="tabActiva === 'reportes'"
+              [class.bg-white]="tabActiva === 'reportes'"
+              [class.border-transparent]="tabActiva !== 'reportes'"
+              [class.text-slate-600]="tabActiva !== 'reportes'"
+              class="flex items-center gap-2.5 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl hover:text-slate-900 cursor-pointer shrink-0">
+        <i class="fa-solid fa-file-contract text-base"></i>
+        <span>Reportes e Informes</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+              [ngClass]="tabActiva === 'reportes' ? 'bg-accent text-white' : 'bg-slate-200 text-slate-700'">
+          {{ documentosAnexos.length }}
+        </span>
+      </button>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- CONTENIDO PESTAÑA 1: GESTIÓN DE SOLICITUDES (Aprobar / Rechazar) -->
+    <!-- ================================================================= -->
+    <div *ngIf="tabActiva === 'solicitudes'" class="p-6 space-y-5 animate-fade-in">
+      <!-- Filtros de la pestaña 1 -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <div class="relative w-full sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text"
+                 [(ngModel)]="busquedaSolicitud"
+                 placeholder="Buscar por postulante o materia..."
+                 class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-accent" />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <span class="text-xs text-slate-500 font-medium">Estado:</span>
+          <select [(ngModel)]="filtroSolicitudesEstado"
+                  class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 font-medium focus:outline-none focus:border-accent">
+            <option value="todas">Todas las solicitudes</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="asignada">Aprobadas / Asignadas</option>
+            <option value="rechazada">Rechazadas</option>
+          </select>
+          <button (click)="cargarSolicitudes()" title="Recargar lista"
+                  class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors">
+            <i class="fa-solid fa-arrows-rotate text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Solicitudes -->
+      <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-50/90 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+              <th class="py-3 px-4">Postulante</th>
+              <th class="py-3 px-4">Cátedra / Materia</th>
+              <th class="py-3 px-4">Promedio Académico</th>
+              <th class="py-3 px-4">Fecha Solicitud</th>
+              <th class="py-3 px-4">Estado</th>
+              <th class="py-3 px-4 text-right">Acciones de Dictamen</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr *ngFor="let s of solicitudesFiltradas" class="hover:bg-slate-50/70 transition-colors">
+              <td class="py-3.5 px-4 font-semibold text-slate-900">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-full bg-accent/10 text-accent font-bold flex items-center justify-center text-xs">
+                    {{ s.nombreEstudiante.charAt(0) }}
+                  </div>
+                  <div>
+                    <span class="block font-medium text-slate-900">{{ s.nombreEstudiante }}</span>
+                    <span class="text-[10px] text-slate-400 font-normal">ID Postulación #{{ s.ayudantiaId }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="py-3.5 px-4">
+                <span class="font-medium text-slate-800">{{ s.nombreCatedra }}</span>
+              </td>
+              <td class="py-3.5 px-4">
+                <span class="inline-flex items-center gap-1 font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+                  <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> {{ s.promedio ? s.promedio.toFixed(1) : '4.8' }} / 5.0
+                </span>
+              </td>
+              <td class="py-3.5 px-4 text-slate-500">
+                {{ s.fecha || '2026-08-20' }}
+              </td>
+              <td class="py-3.5 px-4">
+                <span *ngIf="s.estado === 'Pendiente'"
+                      class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                  <i class="fa-solid fa-hourglass-half text-[10px]"></i> Pendiente
+                </span>
+                <span *ngIf="s.estado === 'Asignada' || s.estado === 'Aprobada'"
+                      class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                  <i class="fa-solid fa-check text-[10px]"></i> Aprobada
+                </span>
+                <span *ngIf="s.estado === 'Rechazada'"
+                      class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
+                  <i class="fa-solid fa-xmark text-[10px]"></i> Rechazada
+                </span>
+              </td>
+              <td class="py-3.5 px-4 text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <button *ngIf="s.estado === 'Pendiente' || s.estado === 'Rechazada'"
+                          (click)="aprobarSolicitud(s)"
+                          class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1">
+                    <i class="fa-solid fa-check"></i> Aprobar
+                  </button>
+                  <button *ngIf="s.estado === 'Pendiente' || s.estado === 'Asignada'"
+                          (click)="rechazarSolicitud(s)"
+                          class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium rounded-lg text-xs transition-colors flex items-center gap-1">
+                    <i class="fa-solid fa-ban"></i> Rechazar
+                  </button>
+                  <span *ngIf="s.estado === 'Asignada'" class="text-[11px] text-emerald-600 font-medium">
+                    <i class="fa-solid fa-circle-check"></i> Asignado
+                  </span>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="solicitudesFiltradas.length === 0">
+              <td colspan="6" class="py-8 text-center text-slate-400">
+                <i class="fa-solid fa-inbox text-2xl mb-2 text-slate-300 block"></i>
+                No se encontraron solicitudes con los criterios de filtro seleccionados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- CONTENIDO PESTAÑA 2: AYUDANTÍAS ACTIVAS (Seguimiento)             -->
+    <!-- ================================================================= -->
+    <div *ngIf="tabActiva === 'activas'" class="p-6 space-y-5 animate-fade-in">
+      <!-- Filtros de la pestaña 2 -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <div class="relative w-full sm:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text"
+                 [(ngModel)]="busquedaActiva"
+                 placeholder="Buscar por ayudante, materia o docente..."
+                 class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-accent" />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <span class="text-xs text-slate-500 font-medium">Estado:</span>
+          <select [(ngModel)]="filtroActivaEstado"
+                  class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 font-medium focus:outline-none focus:border-accent">
+            <option value="todas">Todos los estados</option>
+            <option value="en curso">En Curso</option>
+            <option value="cumplida">Cumplidas</option>
+            <option value="en riesgo">En Riesgo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Ayudantías Activas -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div *ngFor="let a of ayudantiasActivasFiltradas"
+             class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-accent/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 mb-1">
+                  {{ a.matricula }} &bull; {{ a.semestre }}
+                </span>
+                <h3 class="text-base font-bold text-slate-900 leading-snug">{{ a.estudiante }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                  <i class="fa-solid fa-book-open text-accent text-[11px]"></i>
+                  <span class="font-medium text-slate-700">{{ a.materia }}</span>
+                </p>
+              </div>
+
+              <!-- Badge de estado -->
+              <span [ngClass]="{
+                      'bg-emerald-50 text-emerald-700 border-emerald-200': a.estado === 'En Curso',
+                      'bg-blue-50 text-blue-700 border-blue-200': a.estado === 'Cumplida',
+                      'bg-rose-50 text-rose-700 border-rose-200': a.estado === 'En Riesgo'
+                    }"
+                    class="px-2.5 py-1 rounded-full text-[11px] font-semibold border shrink-0">
+                {{ a.estado }}
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-500 mt-2">
+              <span class="font-semibold text-slate-700">Docente a cargo:</span> {{ a.docente }}
+            </p>
+
+            <!-- Barra de avance de horas -->
+            <div class="mt-3.5 space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-slate-700">Avance de Horas</span>
+                <span class="font-bold text-slate-900">{{ a.horasCompletadas }} / {{ a.horasTotales }} hrs ({{ calcularPorcentaje(a.horasCompletadas, a.horasTotales) }}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div class="h-2 rounded-full transition-all duration-500"
+                     [ngClass]="{
+                       'bg-emerald-500': a.estado === 'En Curso' || a.estado === 'Cumplida',
+                       'bg-rose-500': a.estado === 'En Riesgo'
+                     }"
+                     [style.width.%]="calcularPorcentaje(a.horasCompletadas, a.horasTotales)">
+                </div>
+              </div>
+            </div>
+
+            <!-- Última actividad registrada -->
+            <div class="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+              <span class="font-semibold text-slate-700 block mb-0.5 text-[11px]">Última bitácora reportada:</span>
+              <p class="italic text-[11px] text-slate-500 line-clamp-2">"{{ a.ultimaActividad }}"</p>
+            </div>
+          </div>
+
+          <!-- Acciones de seguimiento -->
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <a routerLink="/admin/seguimiento" class="text-accent hover:text-accent-hover font-semibold flex items-center gap-1">
+              <span>Ver bitácora completa</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+            <span class="text-slate-400 text-[11px]">Supervisión SIGAC</span>
+          </div>
+        </div>
+
+        <div *ngIf="ayudantiasActivasFiltradas.length === 0" class="col-span-full py-10 text-center text-slate-400">
+          <i class="fa-solid fa-user-xmark text-3xl mb-2 text-slate-300 block"></i>
+          No hay ayudantías activas coincidentes con el filtro.
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- CONTENIDO PESTAÑA 3: REPORTES E INFORMES (Resoluciones y Anexos)  -->
+    <!-- ================================================================= -->
+    <div *ngIf="tabActiva === 'reportes'" class="p-6 space-y-6 animate-fade-in">
+      <!-- Encabezado de la pestaña 3 -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Repositorio Oficial de Resoluciones y Anexos</h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Carga, consulta y descarga los documentos legales, planes de trabajo y actas de cierre de ayudantía.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button (click)="abrirModalSubida()"
+                  class="px-3.5 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-file-circle-plus"></i>
+            <span>Nuevo Documento</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Listado de Resoluciones y Anexos -->
+      <div class="space-y-3">
+        <div *ngFor="let doc of documentosAnexos"
+             class="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 text-base">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                  {{ doc.tipo }}
+                </span>
+                <span class="text-xs font-bold text-slate-900">{{ doc.codigo }}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                      [ngClass]="{
+                        'bg-emerald-50 text-emerald-700 border border-emerald-200': doc.estado === 'Aprobado' || doc.estado === 'Homologado',
+                        'bg-amber-50 text-amber-700 border border-amber-200': doc.estado === 'En Firma' || doc.estado === 'Pendiente'
+                      }">
+                  {{ doc.estado }}
+                </span>
+              </div>
+              <p class="text-xs font-medium text-slate-800 mt-1">{{ doc.titulo }}</p>
+              <div class="flex items-center gap-4 text-[11px] text-slate-400 mt-1 flex-wrap">
+                <span><i class="fa-solid fa-book text-[10px] text-slate-400"></i> {{ doc.materia }}</span>
+                <span><i class="fa-solid fa-user text-[10px] text-slate-400"></i> {{ doc.estudianteAyudante }}</span>
+                <span><i class="fa-regular fa-calendar text-[10px] text-slate-400"></i> {{ doc.fechaEmision }}</span>
+                <span><i class="fa-solid fa-hard-drive text-[10px] text-slate-400"></i> {{ doc.tamano }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón de descarga -->
+          <div class="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+            <button (click)="descargarDocumento(doc)"
+                    class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-arrow-down-to-bracket text-slate-500"></i>
+              <span>Descargar PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SUBIR RESOLUCIÓN O ANEXO -->
+  <div *ngIf="mostrarModalSubida" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-accent"></i>
+          <span>Subir Resolución o Anexo Oficial</span>
+        </h3>
+        <button (click)="cerrarModalSubida()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tipo de Documento</label>
+          <select [(ngModel)]="nuevoDocumento.tipo" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-accent bg-white">
+            <option value="Resolución">Resolución Decanal / Consejo</option>
+            <option value="Anexo 1">Anexo 1: Plan de Trabajo y Horarios</option>
+            <option value="Anexo 2">Anexo 2: Informe Mensual de Actividades</option>
+            <option value="Informe Final">Informe Final y Validación de Horas</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Código de Identificación del Documento</label>
+          <input type="text" [(ngModel)]="nuevoDocumento.codigo" placeholder="Ej: RES-DEC-2026-104"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-accent" />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Título o Descripción del Documento</label>
+          <input type="text" [(ngModel)]="nuevoDocumento.titulo" placeholder="Ej: Aprobación oficial de ayudantía de Cálculo..."
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-accent" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Materia Asociada</label>
+            <input type="text" [(ngModel)]="nuevoDocumento.materia" placeholder="Ej: Cálculo Avanzado"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-accent" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Ayudante / Asignado</label>
+            <input type="text" [(ngModel)]="nuevoDocumento.estudianteAyudante" placeholder="Ej: Alejandro García"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-accent" />
+          </div>
+        </div>
+
+        <!-- Selector de archivo drag & drop -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Archivo PDF o Certificado</label>
+          <div class="border-2 border-dashed border-slate-200 hover:border-accent rounded-xl p-4 text-center cursor-pointer bg-slate-50 transition-colors"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" (change)="onArchivoSeleccionado($event)" accept=".pdf,.doc,.docx" class="hidden" />
+            <i class="fa-solid fa-file-arrow-up text-2xl text-slate-400 mb-1 block"></i>
+            <p class="text-slate-600 font-medium text-xs">
+              {{ nuevoDocumento.archivoNombre || 'Haz clic para seleccionar o arrastra el documento aquí' }}
+            </p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Soporta PDF, DOCX (Máx. 10 MB)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button (click)="cerrarModalSubida()"
+                class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold">
+          Cancelar
+        </button>
+        <button (click)="guardarDocumento()"
+                class="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-semibold shadow-sm">
+          Guardar y Publicar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

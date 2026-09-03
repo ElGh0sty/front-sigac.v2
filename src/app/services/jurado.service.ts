@@ -183,6 +183,18 @@ export class JuradoService {
   }
 
   /**
+   * POST /api/jurado/presentaciones/{id}/evaluaciones
+   * Alias de compatibilidad estricta: registrarEvaluacion
+   */
+  registrarEvaluacion(presentacionId: number, body: { nota: number; observaciones: string; criterios?: any }): Observable<any> {
+    return this.evaluarPresentacion(presentacionId, {
+      nota: body.nota,
+      observaciones: body.observaciones,
+      criterios: body.criterios
+    });
+  }
+
+  /**
    * GET /api/jurado/presentaciones/{id}/resultado
    * Obtiene promedios, estado comparativo y detalles de las calificaciones del jurado
    */

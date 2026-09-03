@@ -28,6 +28,7 @@ export interface MateriaDto {
   grupo?: string;
   ayudantes?: string[];
   estudiantes?: EstudianteMateria[];
+  actividades?: any[];
 }
 
 export interface CreateMateriaDto {
@@ -631,6 +632,13 @@ export class MateriaService {
   }
 
   // ==================== ACTIVIDADES ====================
+
+  getActividadesSnapshot(materiaId?: number): ActividadDto[] {
+    if (materiaId !== undefined) {
+      return this.actividadesSubject.value.filter(a => Number(a.materiaId) === Number(materiaId));
+    }
+    return this.actividadesSubject.value;
+  }
 
   getActividadesByMateria(materiaId: number): Observable<ActividadDto[]> {
     return this.actividades$.pipe(

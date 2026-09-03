@@ -14,6 +14,8 @@ export interface UserDto {
   username: string;
   token: string;
   rol?: string;
+  roles?: string[];
+  Roles?: string[];
   nombre?: string;
   apellido?: string;
   correo?: string;
@@ -65,7 +67,12 @@ export class AuthService {
       tap((response: UserDto) => {
         if (response && response.token) {
           localStorage.setItem('token', response.token);
-          localStorage.setItem('rol', response.rol || '');
+          const rolPrincipal = response.rol || (response.roles && response.roles[0]) || (response.Roles && response.Roles[0]) || '';
+          localStorage.setItem('rol', rolPrincipal);
+          const rolesArray = response.roles || response.Roles || (response.rol ? [response.rol] : []);
+          if (rolesArray.length > 0) {
+            localStorage.setItem('roles', JSON.stringify(rolesArray));
+          }
           localStorage.setItem('username', response.username);
           localStorage.setItem('userId', response.id ? response.id.toString() : '');
           if (response.nombre) localStorage.setItem('nombre', response.nombre);
@@ -175,6 +182,7 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('rol');
+    localStorage.removeItem('roles');
     localStorage.removeItem('username');
     localStorage.removeItem('userId');
   }
@@ -187,8 +195,103 @@ export class AuthService {
     return localStorage.getItem('rol');
   }
 
+  /**
+   * Obtiene la lista unificada de todos los roles asignados al usuario actual.
+   * Lee desde:
+   * 1. Claims del JWT decodificado ('role', 'roles', schema claim de .NET Identity)
+   * 2. Array serializado en localStorage ('roles')
+   * 3. Valor simple en localStorage ('rol')
+   */
+  getRoles(): string[] {
+    const rolesSet = new Set<string>();
+
+    // 1. Intentar decodificar claims del token JWT
+    const token = this.getToken();
+    if (token && token.includes('.')) {
+      try {
+        const payloadBase64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(payloadBase64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const parsed = JSON.parse(jsonPayload);
+
+        // Claims comunes en .NET Web API
+        const msRoleClaim = parsed['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        const directRole = parsed['role'] || parsed['roles'] || parsed['Roles'];
+
+        if (Array.isArray(msRoleClaim)) {
+          msRoleClaim.forEach(r => r && rolesSet.add(String(r).trim()));
+        } else if (typeof msRoleClaim === 'string') {
+          rolesSet.add(msRoleClaim.trim());
+        }
+
+        if (Array.isArray(directRole)) {
+          directRole.forEach(r => r && rolesSet.add(String(r).trim()));
+        } else if (typeof directRole === 'string') {
+          rolesSet.add(directRole.trim());
+        }
+      } catch (e) {
+        // En tokens simulados o no estándar, continuar con almacenamiento local
+      }
+    }
+
+    // 2. Revisar arreglo almacenado en localStorage
+    const storedRoles = localStorage.getItem('roles');
+    if (storedRoles) {
+      try {
+        const parsedArray = JSON.parse(storedRoles);
+        if (Array.isArray(parsedArray)) {
+          parsedArray.forEach(r => r && rolesSet.add(String(r).trim()));
+        }
+      } catch {
+        storedRoles.split(/[,;/|]+/).forEach(r => r && rolesSet.add(r.trim()));
+      }
+    }
+
+    // 3. Revisar rol principal en localStorage
+    const mainRol = this.getRol();
+    if (mainRol) {
+      mainRol.split(/[,;/|]+/).forEach(r => r && rolesSet.add(r.trim()));
+    }
+
+    // Si no hay ninguno, retornar vacío
+    return Array.from(rolesSet);
+  }
+
   getUserId(): number | null {
     const id = localStorage.getItem('userId');
     return id ? parseInt(id, 10) : null;
+  }
+
+  hasRole(role: string): boolean {
+    if (!role) return false;
+    const target = role.trim().toLowerCase();
+    const roles = this.getRoles();
+    return roles.some(r => r.toLowerCase() === target);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    if (!roles || roles.length === 0) return false;
+    return roles.some(r => this.hasRole(r));
+  }
+
+  currentUser(): UserDto | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const activeRoles = this.getRoles();
+    return {
+      id: this.getUserId() || 1,
+      username: localStorage.getItem('username') || '',
+      token: token,
+      rol: this.getRol() || (activeRoles.length > 0 ? activeRoles[0] : ''),
+      roles: activeRoles,
+      Roles: activeRoles,
+      nombre: localStorage.getItem('nombre') || '',
+      apellido: localStorage.getItem('apellido') || '',
+      correo: localStorage.getItem('correo') || ''
+    };
   }
 }

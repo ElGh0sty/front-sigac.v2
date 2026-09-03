@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ClaseService } from '../../../services/clase.service';
 import { MateriaDto, MateriaService } from '../../../services/materia.service';
@@ -9,7 +9,7 @@ import { MateriaDto, MateriaService } from '../../../services/materia.service';
 @Component({
   selector: 'app-crear-clase',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './crear-clase.html'
 })
 export class CrearClaseComponent implements OnInit, OnDestroy {
@@ -37,9 +37,21 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private location: Location,
     private claseService: ClaseService,
     private materiaService: MateriaService
   ) {}
+
+  goBack(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/clases']);
+    }
+  }
 
   ngOnInit() {
     this.sub = this.materiaService.materias$.subscribe(list => {

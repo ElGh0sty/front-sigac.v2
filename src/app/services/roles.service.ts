@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { getApiBase } from '../api';
+import { AuthService } from './auth.service';
 
 export type RolSistema = 'Administrador' | 'Decano' | 'Coordinador' | 'Docente' | 'Estudiante';
 
@@ -31,6 +32,19 @@ export interface RespuestaAsignacionRol {
 })
 export class RolesService {
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
+
+  getRoles(): string[] {
+    return this.authService.getRoles();
+  }
+
+  hasRole(role: string): boolean {
+    return this.authService.hasRole(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    return this.authService.hasAnyRole(roles);
+  }
 
   private get apiUrl() {
     return `${getApiBase()}/api/roles`;

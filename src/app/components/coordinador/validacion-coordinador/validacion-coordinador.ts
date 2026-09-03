@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { JuradoService, CrearPresentacionDto } from '../../../services/jurado.service';
 import { CoordinadorService } from '../../../services/coordinador.service';
 
@@ -59,6 +60,7 @@ export class ValidacionCoordinadorComponent implements OnInit {
   private fb = inject(FormBuilder);
   private juradoService = inject(JuradoService);
   private coordinadorService = inject(CoordinadorService);
+  private route = inject(ActivatedRoute);
 
   // Lista de postulantes pendientes de revisión por la Coordinación
   postulantes: PostulanteEvaluacion[] = [
@@ -168,9 +170,21 @@ export class ValidacionCoordinadorComponent implements OnInit {
 
   ngOnInit(): void {
     this.iniciarFormularios();
-    if (this.postulantes.length > 0) {
-      this.seleccionarPostulante(this.postulantes[0]);
-    }
+
+    // Comprobar si se ingresó mediante ruta con parámetro :solicitudId
+    this.route.paramMap.subscribe(params => {
+      const solicitudId = params.get('solicitudId');
+      if (solicitudId) {
+        const encontrada = this.postulantes.find(p => p.ayudantiaId === Number(solicitudId) || p.estudianteId === Number(solicitudId));
+        if (encontrada) {
+          this.seleccionarPostulante(encontrada);
+          return;
+        }
+      }
+      if (this.postulantes.length > 0) {
+        this.seleccionarPostulante(this.postulantes[0]);
+      }
+    });
   }
 
   iniciarFormularios(): void {
@@ -198,6 +212,19 @@ export class ValidacionCoordinadorComponent implements OnInit {
     this.postulanteSeleccionado = postulante;
     this.mensajeExito = '';
     this.mensajeError = '';
+
+    // Consultar servicio normativo para confirmar datos
+    this.coordinadorService.getValidacionRequisitosEstudiante(postulante.estudianteId).subscribe({
+      next: (req) => {
+        if (req && this.postulanteSeleccionado) {
+          this.postulanteSeleccionado.porcentajeMallaAprobada = req.porcentajeMalla;
+          this.postulanteSeleccionado.promedioEstudiante = req.promedioEstudiante;
+          this.postulanteSeleccionado.promedioGeneralCarrera = req.promedioCarrera;
+          this.postulanteSeleccionado.promedioHistoricoCurso = req.promedioCurso;
+          this.postulanteSeleccionado.cumpleTodosRequisitos = req.cumpleRequisitos && this.postulanteSeleccionado.acuerdoDocenteAprobado;
+        }
+      }
+    });
 
     this.tribunalForm.patchValue({
       ayudantiaId: postulante.ayudantiaId,

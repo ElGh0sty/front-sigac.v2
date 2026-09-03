@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { JuradoService, PresentacionDetalleDto, ResultadoPresentacionDto, EvaluacionJuradoDto } from '../../../services/jurado.service';
 
 @Component({
@@ -12,6 +13,7 @@ import { JuradoService, PresentacionDetalleDto, ResultadoPresentacionDto, Evalua
 export class EvaluacionTribunalComponent implements OnInit {
   private fb = inject(FormBuilder);
   private juradoService = inject(JuradoService);
+  private route = inject(ActivatedRoute);
 
   presentaciones: PresentacionDetalleDto[] = [];
   presentacionSeleccionada: PresentacionDetalleDto | null = null;
@@ -65,9 +67,19 @@ export class EvaluacionTribunalComponent implements OnInit {
     this.juradoService.getPresentaciones().subscribe({
       next: (data) => {
         this.presentaciones = data;
-        if (data.length > 0) {
-          this.seleccionarPresentacion(data[0]);
-        }
+        this.route.paramMap.subscribe(params => {
+          const presId = params.get('presentacionId');
+          if (presId) {
+            const found = this.presentaciones.find(p => p.id === Number(presId));
+            if (found) {
+              this.seleccionarPresentacion(found);
+              return;
+            }
+          }
+          if (this.presentaciones.length > 0) {
+            this.seleccionarPresentacion(this.presentaciones[0]);
+          }
+        });
       }
     });
   }
@@ -134,7 +146,7 @@ export class EvaluacionTribunalComponent implements OnInit {
     };
 
     const currentPresId = this.presentacionSeleccionada.id;
-    this.juradoService.evaluarPresentacion(currentPresId, dto).subscribe({
+    this.juradoService.registrarEvaluacion(currentPresId, dto).subscribe({
       next: (res) => {
         this.isSubmitting = false;
         this.mensajeExito = res.mensaje;

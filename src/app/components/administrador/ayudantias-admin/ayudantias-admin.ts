@@ -1,17 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-// ✅ CORREGIDO: Importa desde la carpeta padre (./) porque están al mismo nivel
-import { SolicitudesComponent } from '../solicitudes/solicitudes';
-import { AsignacionesComponent } from '../asignaciones/asignaciones';
-import { SeguimientoComponent } from '../seguimiento/seguimiento';
+import { AyudantiasDashboardComponent } from '../ayudantias-dashboard/ayudantias-dashboard';
 
 @Component({
   selector: 'app-ayudantias-admin',
   standalone: true,
-  imports: [CommonModule, SolicitudesComponent, AsignacionesComponent, SeguimientoComponent],
-  templateUrl: './ayudantias-admin.html'
+  imports: [CommonModule, AyudantiasDashboardComponent],
+  template: `<app-ayudantias-dashboard></app-ayudantias-dashboard>`
 })
-export class AyudantiasAdminComponent {
-  tab: 'solicitudes' | 'asignaciones' | 'seguimiento' = 'solicitudes';
-}
+export class AyudantiasAdminComponent {}

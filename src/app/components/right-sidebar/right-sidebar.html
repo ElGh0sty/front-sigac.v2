@@ -1,38 +1,211 @@
-<aside class="w-full bg-white flex flex-col shrink-0 z-20 relative border-l border-slate-200">
-  <div class="h-[72px] flex items-center px-6 shrink-0 border-b border-slate-200">
-    <h2 class="text-sm font-semibold text-slate-900">Agenda Próxima</h2>
-  </div>
-  <div class="flex-1 overflow-y-auto p-5 space-y-6">
-
-    <!-- NOTIFICACIONES UNIFICADAS -->
-    <div>
-      <h3 class="text-xs font-semibold tracking-wider text-slate-400 uppercase mb-3">Notificaciones</h3>
-      <div class="space-y-3">
-        <div *ngFor="let noti of notificaciones"
-             class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all"
-             (click)="irADetalle(noti)">
-          <p class="text-sm font-semibold text-slate-900">{{ noti.titulo }}</p>
-          <p class="text-[11px] text-slate-500 mt-0.5">{{ noti.descripcion }}</p>
-          <div class="flex items-center justify-between mt-2">
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full flex items-center gap-1.5"
-                              [ngClass]="{
-                                'bg-amber-50 text-amber-600 border border-amber-200': noti.tipo === 'actividad',
-                                'bg-blue-50 text-blue-600 border border-blue-200': noti.tipo === 'recurso',
-                                'bg-emerald-50 text-emerald-600 border border-emerald-200': noti.tipo === 'clase'
-                              }">
-                          <i class="fa-solid text-[9px]"
-                             [ngClass]="{
-                               'fa-clock': noti.tipo === 'actividad',
-                               'fa-file': noti.tipo === 'recurso',
-                               'fa-video': noti.tipo === 'clase'
-                             }"></i>
-                          {{ noti.tipo }}
-                        </span>
-            <span class="text-xs text-slate-400">Ver detalles →</span>
-          </div>
-        </div>
+<aside class="w-full bg-white flex flex-col shrink-0 z-20 relative border-l border-slate-200 h-full overflow-hidden" id="panel-notificaciones-sidebar">
+  
+  <!-- CABECERA DEL PANEL DE AVISOS -->
+  <div class="h-[72px] flex items-center justify-between px-5 shrink-0 border-b border-slate-200 bg-white">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center text-sm">
+        <i class="fa-regular fa-bell"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold text-slate-900 leading-tight">Centro de Avisos</h2>
+        <span class="text-[10px] text-slate-400 font-medium block">
+          {{ pendientesCount }} aviso{{ pendientesCount === 1 ? '' : 's' }} sin revisar
+        </span>
       </div>
     </div>
 
+    <!-- Botón para marcar todas como leídas -->
+    <button *ngIf="pendientesCount > 0"
+            type="button"
+            (click)="marcarTodasComoLeidas()"
+            title="Marcar todas como revisadas"
+            class="text-[11px] font-semibold text-accent hover:text-accent-dim hover:underline cursor-pointer">
+      Marcar leídas
+    </button>
   </div>
+
+  <!-- FILTRO DE NOTIFICACIONES -->
+  <div class="px-5 pt-4 pb-2 shrink-0 flex items-center gap-2">
+    <button type="button"
+            (click)="filtro = 'todas'"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+            [ngClass]="filtro === 'todas' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'">
+      Todas ({{ notificaciones.length }})
+    </button>
+    <button type="button"
+            (click)="filtro = 'pendientes'"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            [ngClass]="filtro === 'pendientes' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-500 hover:text-slate-800'">
+      <span>Sin leer</span>
+      <span *ngIf="pendientesCount > 0" class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
+        {{ pendientesCount }}
+      </span>
+    </button>
+  </div>
+
+  <!-- LISTA DE NOTIFICACIONES CON ACCIÓN REAL -->
+  <div class="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+    
+    <div *ngIf="notificacionesFiltradas.length === 0" class="text-center py-12 text-slate-400 text-xs">
+      <i class="fa-regular fa-bell-slash text-2xl mb-2 block"></i>
+      No hay avisos pendientes en este filtro.
+    </div>
+
+    <div *ngFor="let noti of notificacionesFiltradas"
+         class="group border rounded-2xl p-4 shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer relative flex flex-col justify-between space-y-2.5"
+         [ngClass]="noti.leida ? 'bg-white border-slate-200/80 text-slate-600' : 'bg-blue-50/30 border-blue-200 text-slate-900'"
+         (click)="abrirNotificacion(noti)">
+      
+      <!-- Indicador de no leída -->
+      <span *ngIf="!noti.leida" class="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+
+      <!-- Materia y Fecha -->
+      <div class="flex items-center justify-between gap-2 pr-4">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+          {{ noti.materiaNombre }}
+        </span>
+        <span class="text-[10px] text-slate-400 shrink-0 font-medium">
+          {{ noti.fecha }}
+        </span>
+      </div>
+
+      <!-- Título y Resumen -->
+      <div>
+        <h4 class="text-xs font-bold leading-snug group-hover:text-accent transition-colors"
+            [ngClass]="noti.leida ? 'text-slate-800' : 'text-slate-900'">
+          {{ noti.titulo }}
+        </h4>
+        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+          {{ noti.descripcion }}
+        </p>
+      </div>
+
+      <!-- Footer de la Tarjeta con Tipo y Acciones -->
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        
+        <!-- Badge de Tipo -->
+        <span class="text-[10px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5"
+              [ngClass]="{
+                'bg-indigo-50 text-indigo-700 border border-indigo-200': noti.tipo === 'comunicado',
+                'bg-emerald-50 text-emerald-700 border border-emerald-200': noti.tipo === 'recurso',
+                'bg-blue-50 text-blue-700 border border-blue-200': noti.tipo === 'clase',
+                'bg-purple-50 text-purple-700 border border-purple-200': noti.tipo === 'calificacion'
+              }">
+          <i class="fa-solid text-[9px]"
+             [ngClass]="{
+               'fa-bullhorn': noti.tipo === 'comunicado',
+               'fa-file-lines': noti.tipo === 'recurso',
+               'fa-video': noti.tipo === 'clase',
+               'fa-star': noti.tipo === 'calificacion'
+             }"></i>
+          {{ noti.tipo === 'comunicado' ? 'Aviso Oficial' : noti.tipo === 'recurso' ? 'Material' : noti.tipo === 'clase' ? 'Clase en Vivo' : 'Calificación' }}
+        </span>
+
+        <!-- Botón para alternar leída/no leída sin abrir -->
+        <button type="button"
+                (click)="toggleLeida($event, noti)"
+                title="{{ noti.leida ? 'Marcar como no leída' : 'Marcar como leída' }}"
+                class="text-slate-400 hover:text-slate-700 p-1 text-xs transition-colors cursor-pointer">
+          <i class="fa-solid" [ngClass]="noti.leida ? 'fa-check text-emerald-600' : 'fa-check text-slate-300'"></i>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL INTERACTIVO PARA COMUNICADOS, CLASES Y CALIFICACIONES -->
+  <div *ngIf="modalAbierto && notificacionSeleccionada"
+       class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+       id="modal-detalle-notificacion">
+    
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6">
+      
+      <!-- Cabecera del Modal -->
+      <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2.5 py-0.5 rounded-md">
+              {{ notificacionSeleccionada.materiaNombre }}
+            </span>
+            <span class="text-xs text-slate-400 font-medium">
+              {{ notificacionSeleccionada.fecha }}
+            </span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 leading-snug">
+            {{ notificacionSeleccionada.titulo }}
+          </h3>
+          <p class="text-xs text-slate-500 font-medium">
+            Remitente: <strong class="text-slate-700">{{ notificacionSeleccionada.emisor || 'Docente de Cátedra' }}</strong>
+          </p>
+        </div>
+
+        <button type="button"
+                (click)="cerrarModal()"
+                class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Contenido del Mensaje -->
+      <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+        
+        <p class="whitespace-pre-line bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+          {{ notificacionSeleccionada.contenidoCompleto }}
+        </p>
+
+        <!-- Bloque especial para Sesión Virtual / Clase en Vivo -->
+        <div *ngIf="notificacionSeleccionada.tipo === 'clase'" class="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-950 flex items-center gap-2">
+              <i class="fa-solid fa-video text-blue-600"></i> Datos de Acceso a la Sesión
+            </span>
+            <span class="text-xs text-blue-700 font-semibold bg-white px-2 py-0.5 rounded-md border border-blue-200">Google Meet / Zoom</span>
+          </div>
+
+          <div class="text-xs text-slate-600 space-y-1.5">
+            <p>• ID de Reunión: <strong class="font-mono text-slate-900">{{ notificacionSeleccionada.idReunion || '849 2039 1102' }}</strong></p>
+            <p>• Código de Acceso: <strong class="font-mono text-slate-900">{{ notificacionSeleccionada.codigoAcceso || 'CALC2026' }}</strong></p>
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <button type="button"
+                    (click)="copiarEnlaceClase()"
+                    class="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs">
+              <i class="fa-solid" [ngClass]="enlaceCopiado ? 'fa-check text-emerald-600' : 'fa-copy'"></i>
+              <span>{{ enlaceCopiado ? '¡Enlace Copiado!' : 'Copiar Enlace' }}</span>
+            </button>
+            <a [href]="notificacionSeleccionada.enlaceClase"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <span>Unirse a la Sesión</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Acciones de Pie del Modal -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <button type="button"
+                (click)="irAMateriaDesdeModal()"
+                class="px-4 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold rounded-xl transition-colors flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-book-open"></i>
+          <span>Ir al Aula de {{ notificacionSeleccionada.materiaNombre }}</span>
+        </button>
+
+        <button type="button"
+                (click)="cerrarModal()"
+                class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer">
+          Entendido
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
 </aside>

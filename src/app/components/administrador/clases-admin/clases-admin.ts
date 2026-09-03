@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { combineLatest, Subscription } from 'rxjs';
 import { MateriaDto, MateriaService } from '../../../services/materia.service';
 import { ClaseDto, ClaseService } from '../../../services/clase.service';
+import { AuthService } from '../../../services/auth.service';
 
 export interface ClaseConMaterias extends ClaseDto {
   materiasList: MateriaDto[];
@@ -26,8 +27,17 @@ export class ClasesAdminComponent implements OnInit, OnDestroy {
 
   constructor(
     private claseService: ClaseService,
-    private materiaService: MateriaService
+    private materiaService: MateriaService,
+    private authService: AuthService
   ) {}
+
+  hasRole(role: string): boolean {
+    return this.authService.hasRole(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    return this.authService.hasAnyRole(roles);
+  }
 
   ngOnInit() {
     this.sub = combineLatest([
