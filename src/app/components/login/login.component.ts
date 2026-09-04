@@ -78,7 +78,7 @@ export class LoginComponent implements OnInit {
     this.testConnectionMessage = 'Probando conexión con el servidor...';
     this.testConnectionSuccess = null;
 
-    const testUrl = `${url.replace(/\/+$/, '')}/api/materia`;
+    const testUrl = `${url.replace(/\/+$/, '')}/swagger/v1/swagger.json`;
     
     // Intento con fetch y timeout corto para diagnosticar net::ERR_CONNECTION_REFUSED
     const controller = new AbortController();
@@ -90,27 +90,28 @@ export class LoginComponent implements OnInit {
         this.isTestingConnection = false;
         if (res.ok || res.status === 401 || res.status === 403) {
           this.testConnectionSuccess = true;
-          this.testConnectionMessage = `✓ Backend detectado y respondiendo correctamente en ${url} (HTTP ${res.status})`;
+          this.testConnectionMessage = `✓ Backend detectado y Swagger respondiendo correctamente en ${url} (HTTP ${res.status})`;
         } else {
           this.testConnectionSuccess = false;
-          this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}. Verifica que el endpoint /api/materia exista.`;
+          this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}. Verifica que Swagger esté activo en /swagger/v1/swagger.json.`;
         }
       })
       .catch(err => {
         clearTimeout(timeoutId);
         this.isTestingConnection = false;
         this.testConnectionSuccess = false;
-        this.testConnectionMessage = `❌ No se pudo conectar a ${url} (ERR_CONNECTION_REFUSED). Verifica que tu proyecto backend en Visual Studio / .NET esté corriendo (F5 o dotnet run).`;
+        this.testConnectionMessage = `❌ No se pudo conectar a ${url} (ERR_CONNECTION_REFUSED). Verifica que tu proyecto backend en Visual Studio / .NET esté corriendo en HTTP (puerto 5291).`;
       });
   }
 
-  ingresarComoDemo(rol: 'Estudiante' | 'Docente' | 'Ayudante' | 'Administrador') {
+  ingresarComoDemo(rol: 'Estudiante' | 'Docente' | 'Ayudante' | 'Administrador' | 'Coordinador') {
     const demoUsers: Record<string, any> = {
       Estudiante: {
         id: 1,
         username: 'estudiante.demo',
         token: 'demo-token-estudiante-xyz',
         rol: 'Estudiante',
+        roles: ['Estudiante'],
         nombre: 'Carlos',
         apellido: 'Mendoza',
         correo: 'carlos.mendoza@universidad.edu'
@@ -120,15 +121,27 @@ export class LoginComponent implements OnInit {
         username: 'docente.demo',
         token: 'demo-token-docente-xyz',
         rol: 'Docente',
+        roles: ['Docente', 'Tribunal'],
         nombre: 'Dra. Patricia',
         apellido: 'Rojas',
         correo: 'patricia.rojas@universidad.edu'
+      },
+      Coordinador: {
+        id: 5,
+        username: 'coordinador.demo',
+        token: 'demo-token-coordinador-xyz',
+        rol: 'Docente',
+        roles: ['Docente', 'Coordinador'],
+        nombre: 'Dr. Fernando',
+        apellido: 'Sarmiento',
+        correo: 'fernando.sarmiento@universidad.edu'
       },
       Ayudante: {
         id: 3,
         username: 'ayudante.demo',
         token: 'demo-token-ayudante-xyz',
         rol: 'Ayudante',
+        roles: ['Estudiante', 'Ayudante'],
         nombre: 'Sebastián',
         apellido: 'Gómez',
         correo: 'sebastian.gomez@universidad.edu'
@@ -138,6 +151,7 @@ export class LoginComponent implements OnInit {
         username: 'admin.demo',
         token: 'demo-token-admin-xyz',
         rol: 'Administrador',
+        roles: ['Administrador'],
         nombre: 'Ing. Roberto',
         apellido: 'Valenzuela',
         correo: 'admin@universidad.edu'
@@ -145,8 +159,12 @@ export class LoginComponent implements OnInit {
     };
 
     const user = demoUsers[rol];
+    if (!user) return;
     localStorage.setItem('token', user.token);
     localStorage.setItem('rol', user.rol);
+    if (user.roles) {
+      localStorage.setItem('roles', JSON.stringify(user.roles));
+    }
     localStorage.setItem('username', user.username);
     localStorage.setItem('userId', user.id.toString());
     localStorage.setItem('nombre', user.nombre);
