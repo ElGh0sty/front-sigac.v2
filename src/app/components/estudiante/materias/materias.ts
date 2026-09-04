@@ -63,7 +63,16 @@ export class MateriasComponent implements OnInit, OnDestroy {
     this.sub = this.materiaService.materias$.subscribe(list => {
       this.materias = list;
     });
-    this.materiaService.refreshMaterias().subscribe();
+    this.materiaService.refreshMaterias().subscribe({
+      next: (list) => {
+        if (list && list.length > 0) {
+          this.materias = list;
+        }
+      },
+      error: () => {
+        this.materias = this.materiaService.getMateriasSnapshot();
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -93,11 +102,13 @@ export class MateriasComponent implements OnInit, OnDestroy {
 
   getInicialesDocente(nombre?: string): string {
     if (!nombre) return 'DC';
-    const partes = nombre.replace(/(Dr\.|Dra\.|Ing\.|Lic\.|Prof\.)/gi, '').trim().split(' ');
+    const limpio = nombre.replace(/(Dr\.|Dra\.|Ing\.|Lic\.|Prof\.)/gi, '').trim();
+    if (!limpio) return 'DC';
+    const partes = limpio.split(/\s+/).filter(Boolean);
     if (partes.length >= 2) {
       return (partes[0][0] + partes[1][0]).toUpperCase();
     }
-    return partes[0].substring(0, 2).toUpperCase();
+    return partes[0].substring(0, Math.min(2, partes[0].length)).toUpperCase() || 'DC';
   }
 
   getPorcentajeAvance(m: MateriaDto): number {

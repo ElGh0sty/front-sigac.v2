@@ -333,11 +333,29 @@ export class MateriaService {
   private asistenciasSubject = new BehaviorSubject<RegistroAsistenciaDto[]>(this.loadStorage(this.STORAGE_ASISTENCIAS, ASISTENCIAS_DEFAULT));
   public asistencias$ = this.asistenciasSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    this.refreshMaterias();
-  }
+  constructor(private http: HttpClient) {}
 
   private get apiUrl() { return `${getApiBase()}/api/materia`; }
+
+  private mapToMateriaDto(item: any, idx: number): MateriaDto {
+    return {
+      id: Number(item.id || item.materiaId || item.catedraId || item.asignaturaId || (idx + 101)),
+      nombre: item.nombre || item.nombreMateria || item.nombreCatedra || item.nombreAsignatura || item.materia || `Asignatura ${idx + 1}`,
+      codigo: item.codigo || item.codigoMateria || item.codigoAsignatura || item.sigla || `MAT-${101 + idx}`,
+      descripcion: item.descripcion || item.descripcionMateria || item.detalle || 'Asignatura inscrita en el periodo académico activo.',
+      docente: item.docente || item.nombreDocente || item.docenteCatedra || item.profesor || 'Docente Titular',
+      docenteResponsableId: item.docenteResponsableId || item.docenteId || 1,
+      creditos: Number(item.creditos || item.creditosMateria || 4),
+      semana: Number(item.semana || item.semanaActual || 8),
+      totalSemanas: Number(item.totalSemanas || 16),
+      claseId: item.claseId ? Number(item.claseId) : undefined,
+      claseNombre: item.claseNombre || item.nombreClase || undefined,
+      semestre: item.semestre || item.semestreCatedra || item.periodo || '2026-2',
+      grupo: item.grupo || item.paralelo || 'Grupo A (Diurno)',
+      ayudantes: Array.isArray(item.ayudantes) ? item.ayudantes : [],
+      estudiantes: Array.isArray(item.estudiantes) ? item.estudiantes : []
+    };
+  }
 
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
@@ -380,25 +398,44 @@ export class MateriaService {
     return list.find(m => Number(m.id) === Number(id));
   }
 
+  /**
+   * Refresca las asignaturas inscritas del estudiante.
+   * Al no existir el endpoint global GET /api/materia en Swagger:
+   * 1. Si el usuario es Estudiante/Ayudante, consulta la ruta disponible:
+   *    GET /api/Estudiante/{id}/validacion-malla
+   * 2. Si la API retorna asignaturas en la respuesta, las mapea y actualiza el estado.
+   * 3. Si la API retorna 404, no contiene materias o aún no implementa el listado,
+   *    se activa el fallback con las materias locales/almacenadas (MATERIAS_DEFAULT),
+   *    garantizando que la interfaz no se rompa ni quede en blanco.
+   */
   refreshMaterias(): Observable<MateriaDto[]> {
-    return this.http.get<any[]>(this.apiUrl).pipe(
-      tap((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const current = this.materiasSubject.value;
-          const mapped: MateriaDto[] = data.map((item, idx) => ({
-            id: item.id || item.materiaId || (idx + 200),
-            nombre: item.nombre || item.nombreMateria || 'Materia',
-            codigo: item.codigo || item.codigoMateria || `MAT-${item.id || idx}`,
-            descripcion: item.descripcion || '',
-            docente: item.docente || item.nombreDocente || (item.docenteResponsableId ? `Docente #${item.docenteResponsableId}` : 'Docente Asignado'),
-            docenteResponsableId: item.docenteResponsableId || 1,
-            creditos: item.creditos || 4,
-            semana: item.semana || 1,
-            totalSemanas: item.totalSemanas || 16,
-            ayudantes: item.ayudantes || [],
-            estudiantes: item.estudiantes || []
-          }));
+    const rol = typeof window !== 'undefined' ? (localStorage.getItem('rol') || 'Estudiante') : 'Estudiante';
+    const userId = typeof window !== 'undefined' ? (Number(localStorage.getItem('userId')) || 1) : 1;
 
+    // Si es docente o administrador, Swagger no cuenta con GET /api/materia;
+    // retornar el snapshot local/almacenado para evitar errores 404 en consola.
+    if (rol !== 'Estudiante' && rol !== 'Ayudante') {
+      return of(this.materiasSubject.value);
+    }
+
+    const endpointEstudiante = `${getApiBase()}/api/Estudiante/${userId}/validacion-malla`;
+
+    return this.http.get<any>(endpointEstudiante).pipe(
+      tap((res) => {
+        let materiasBackend: any[] = [];
+        if (Array.isArray(res)) {
+          materiasBackend = res;
+        } else if (res && typeof res === 'object') {
+          if (Array.isArray(res.materias)) materiasBackend = res.materias;
+          else if (Array.isArray(res.asignaturas)) materiasBackend = res.asignaturas;
+          else if (Array.isArray(res.materiasInscritas)) materiasBackend = res.materiasInscritas;
+          else if (Array.isArray(res.cursos)) materiasBackend = res.cursos;
+          else if (Array.isArray(res.malla)) materiasBackend = res.malla;
+        }
+
+        if (materiasBackend.length > 0) {
+          const mapped = materiasBackend.map((item, idx) => this.mapToMateriaDto(item, idx));
+          const current = this.materiasSubject.value;
           const merged = [...mapped];
           current.forEach(c => {
             if (!merged.some(m => Number(m.id) === Number(c.id) || (m.nombre.toLowerCase() === c.nombre.toLowerCase()))) {
@@ -409,7 +446,12 @@ export class MateriaService {
           this.saveStorage(this.STORAGE_MATERIAS, merged);
         }
       }),
-      catchError(() => of(this.materiasSubject.value))
+      map(() => this.materiasSubject.value),
+      catchError((err) => {
+        // Fallback local silencioso y seguro: previene que la UI se rompa ante 404 de la API
+        console.warn(`[MateriaService] Backend no entregó asignaturas desde ${endpointEstudiante} (HTTP ${err?.status || 'desconocido'}). Usando asignaturas locales/mock.`);
+        return of(this.materiasSubject.value);
+      })
     );
   }
 

@@ -183,7 +183,15 @@ export class EstudianteService {
   }
 
   getHistorialAyudantias(): Observable<HistorialAyudantiaDto[]> {
-    return this.historial$;
+    return this.http.get<HistorialAyudantiaDto[]>(`${this.apiUrl}/ayudantias/historial`).pipe(
+      tap((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          this.historialSubject.next(data);
+          this.saveStorage(this.STORAGE_POSTULACIONES, data);
+        }
+      }),
+      catchError(() => of(this.historialSubject.value))
+    );
   }
 
   actualizarEstadoPostulacion(ayudantiaId: number, nuevoEstado: string): void {
