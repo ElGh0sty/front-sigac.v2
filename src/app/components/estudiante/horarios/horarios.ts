@@ -29,6 +29,20 @@ export class HorariosComponent implements OnInit, OnDestroy {
   rol = localStorage.getItem('rol') || 'Estudiante';
   esAyudante = this.rol === 'Ayudante' || this.rol === 'Docente';
 
+  get esModoAyudante(): boolean {
+    const rol = (localStorage.getItem('rol') || this.rol || '').trim().toLowerCase();
+    return rol === 'ayudante' || this.router.url.includes('/ayudante');
+  }
+
+  get esDocenteOAdmin(): boolean {
+    const rol = (localStorage.getItem('rol') || this.rol || '').trim().toLowerCase();
+    return rol === 'docente' || rol === 'administrador';
+  }
+
+  get nombreCursoAsignado(): string {
+    return 'Ingeniería de Software 2026-2 (Cálculo Avanzado - Grupo A)';
+  }
+
   dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
   horas = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
   alturaCelda = 60;
@@ -189,18 +203,33 @@ export class HorariosComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Lista de todas las clases disponibles filtradas según el rol
+  get clasesFiltradasParaSelector(): Array<{ id: number; nombre: string; materia: string }> {
+    if (this.esModoAyudante) {
+      return this.clasesDisponibles.filter(c => c.id === 1);
+    }
+    return this.clasesDisponibles;
+  }
+
+  // Lista de horarios según el filtro activo y el rol del usuario
+  get horariosFiltrados(): HorarioItem[] {
+    let list = this.horariosRegistrados;
+
+    // Regla estricta: El ayudante de cátedra solo tiene permitido ver el horario
+    // en el que ÉL debe dar clases a su curso asignado (nada más ni nada menos, solo donde ÉL está ocupado)
+    if (this.esModoAyudante) {
+      list = list.filter(c => c.esMiClase === true);
+    }
+
+    if (this.claseSeleccionadaId === 'todas') {
+      return list;
+    }
+    return list.filter(c => Number(c.claseId) === Number(this.claseSeleccionadaId));
+  }
+
   // Obtener horario en una celda filtrando según la selección
   getClaseEnCelda(dia: string, hora: string): HorarioItem | undefined {
-    return this.horariosRegistrados.find(c => {
-      const matchDiaHora = c.dia === dia && c.horaInicio === hora;
-      if (!matchDiaHora) return false;
-
-      // Si hay una clase pre-seleccionada, filtrar solo esa clase o resaltarla
-      if (this.claseSeleccionadaId !== 'todas') {
-        return Number(c.claseId) === Number(this.claseSeleccionadaId);
-      }
-      return true;
-    });
+    return this.horariosFiltrados.find(c => c.dia === dia && c.horaInicio === hora);
   }
 
   isHoraOcupada(dia: string, hora: string): boolean {
@@ -209,7 +238,9 @@ export class HorariosComponent implements OnInit, OnDestroy {
 
   // Alternar selección de una hora para crear clase
   toggleHora(dia: string, hora: string): void {
-    if (!this.esAyudante) return;
+    // El ayudante no tiene permitido crear clases ni seleccionar franjas horarias
+    if (this.esModoAyudante) return;
+    if (!this.esDocenteOAdmin) return;
     if (this.isHoraOcupada(dia, hora)) return;
 
     const key = `${dia}|${hora}`;
@@ -221,6 +252,7 @@ export class HorariosComponent implements OnInit, OnDestroy {
   }
 
   crearClase(): void {
+    if (this.esModoAyudante) return;
     if (this.seleccionadas.size === 0) {
       alert('Selecciona al menos una hora en la cuadrícula.');
       return;
@@ -248,14 +280,6 @@ export class HorariosComponent implements OnInit, OnDestroy {
         horaFin: horaFin
       }
     });
-  }
-
-  // Lista de horarios según el filtro activo
-  get horariosFiltrados(): HorarioItem[] {
-    if (this.claseSeleccionadaId === 'todas') {
-      return this.horariosRegistrados;
-    }
-    return this.horariosRegistrados.filter(c => Number(c.claseId) === Number(this.claseSeleccionadaId));
   }
 
   // Obtener horarios de un día específico
