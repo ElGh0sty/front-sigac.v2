@@ -113,7 +113,7 @@ export class LayoutComponent implements OnInit {
     this.mensajeBackend = 'Verificando comunicación con el backend...';
     this.esExitoBackend = null;
 
-    const testUrl = `${url.replace(/\/+$/, '')}/swagger/v1/swagger.json`;
+    const testUrl = `${url.replace(/\/+$/, '')}/api/Login/login`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
 
@@ -121,12 +121,12 @@ export class LayoutComponent implements OnInit {
       .then(res => {
         clearTimeout(timer);
         this.probandoConexion = false;
-        if (res.ok || res.status === 401 || res.status === 403) {
+        if (res.status >= 200 && res.status < 500) {
           this.esExitoBackend = true;
-          this.mensajeBackend = `✓ Conexión exitosa con el Backend / Swagger en ${url} (HTTP ${res.status})`;
+          this.mensajeBackend = `✓ Backend detectado y respondiendo en ${url}`;
         } else {
           this.esExitoBackend = false;
-          this.mensajeBackend = `⚠ Backend respondió con código HTTP ${res.status}. Verifica que Swagger esté activo.`;
+          this.mensajeBackend = `⚠ Backend respondió con código HTTP ${res.status}.`;
         }
       })
       .catch(() => {

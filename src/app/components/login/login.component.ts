@@ -78,7 +78,7 @@ export class LoginComponent implements OnInit {
     this.testConnectionMessage = 'Probando conexión con el servidor...';
     this.testConnectionSuccess = null;
 
-    const testUrl = `${url.replace(/\/+$/, '')}/swagger/v1/swagger.json`;
+    const testUrl = `${url.replace(/\/+$/, '')}/api/Login/login`;
     
     // Intento con fetch y timeout corto para diagnosticar net::ERR_CONNECTION_REFUSED
     const controller = new AbortController();
@@ -88,12 +88,12 @@ export class LoginComponent implements OnInit {
       .then(res => {
         clearTimeout(timeoutId);
         this.isTestingConnection = false;
-        if (res.ok || res.status === 401 || res.status === 403) {
+        if (res.status >= 200 && res.status < 500) {
           this.testConnectionSuccess = true;
-          this.testConnectionMessage = `✓ Backend detectado y Swagger respondiendo correctamente en ${url} (HTTP ${res.status})`;
+          this.testConnectionMessage = `✓ Backend detectado y respondiendo en ${url}`;
         } else {
           this.testConnectionSuccess = false;
-          this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}. Verifica que Swagger esté activo en /swagger/v1/swagger.json.`;
+          this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}.`;
         }
       })
       .catch(err => {
