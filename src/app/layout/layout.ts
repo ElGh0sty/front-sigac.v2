@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RightSidebarComponent } from '../components/right-sidebar/right-sidebar';
 import { RightSidebarAyudanteComponent } from '../components/ayudante/right-sidebar-ayudante/right-sidebar-ayudante';
@@ -22,11 +22,12 @@ import { getApiBase, setApiBase } from '../api';
 })
 export class LayoutComponent implements OnInit {
   public authService = inject(AuthService);
+  private router = inject(Router);
 
   rol: string = '';
   esAyudante: boolean = false;
   menuAbierto: boolean = false;
-  username: string = 'Alejandro';
+  username: string = 'Usuario';
 
   // Gestión de Backend y Modo Autónomo
   backendActual: string = '';
@@ -47,10 +48,43 @@ export class LayoutComponent implements OnInit {
     }
   }
 
+  get userDisplayName(): string {
+    const nombre = localStorage.getItem('nombre');
+    const apellido = localStorage.getItem('apellido');
+    if (nombre) {
+      return `${nombre} ${apellido || ''}`.trim();
+    }
+    const username = localStorage.getItem('username');
+    if (username) {
+      return username;
+    }
+    return this.username || 'Usuario';
+  }
+
+  get userInitials(): string {
+    const name = this.userDisplayName;
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase() || 'US';
+  }
+
   actualizarBackend() {
     const base = getApiBase();
     this.backendActual = base || '';
     this.inputBackendUrl = base || 'http://localhost:5291';
+  }
+
+  mostrarSeccion(seccion: string): boolean {
+    const rolActual = (this.rol || localStorage.getItem('rol') || 'Estudiante').trim().toLowerCase();
+    const sec = seccion.trim().toLowerCase();
+
+    if (sec === 'jurado' || sec === 'tribunal') {
+      return rolActual === 'jurado' || rolActual === 'tribunal';
+    }
+
+    return rolActual === sec;
   }
 
   hasRole(role: string): boolean {
@@ -68,13 +102,36 @@ export class LayoutComponent implements OnInit {
   cambiarRol(nuevoRol: string) {
     this.rol = nuevoRol;
     localStorage.setItem('rol', nuevoRol);
-    localStorage.setItem('roles', JSON.stringify([nuevoRol]));
     this.actualizarEstadoAyudante();
-    window.location.reload();
+
+    // Redirección inmediata según el rol seleccionado para cambiar la vista
+    switch (nuevoRol) {
+      case 'Estudiante':
+        this.router.navigate(['/estudiante/materias']);
+        break;
+      case 'Ayudante':
+        this.router.navigate(['/ayudante/materias']);
+        break;
+      case 'Docente':
+        this.router.navigate(['/docente/gestion-clases']);
+        break;
+      case 'Coordinador':
+        this.router.navigate(['/coordinador/validacion']);
+        break;
+      case 'Jurado':
+        this.router.navigate(['/jurado/evaluacion']);
+        break;
+      case 'Administrador':
+        this.router.navigate(['/admin/docentes']);
+        break;
+      default:
+        this.router.navigate(['/dashboard']);
+        break;
+    }
   }
 
   actualizarEstadoAyudante() {
-    this.esAyudante = this.rol === 'Ayudante' || this.hasRole('Ayudante');
+    this.esAyudante = this.rol === 'Ayudante';
   }
 
   activarModoAutonomo() {

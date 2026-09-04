@@ -35,7 +35,7 @@
       </a>
 
       <!-- SECCIÓN: ESTUDIANTE -->
-      <ng-container *ngIf="hasRole('Estudiante')">
+      <ng-container *ngIf="mostrarSeccion('Estudiante')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">Estudiante</p>
         <a routerLink="/estudiante/materias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
           <i class="fa-solid fa-book-open text-sm w-5 text-center text-accent"></i>
@@ -55,8 +55,8 @@
         </a>
       </ng-container>
 
-      <!-- SECCIÓN: DOCENTE (Siempre visible si el usuario tiene rol Docente) -->
-      <ng-container *ngIf="hasRole('Docente')">
+      <!-- SECCIÓN: DOCENTE -->
+      <ng-container *ngIf="mostrarSeccion('Docente')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-indigo-400 uppercase">Docente</p>
         <a routerLink="/docente/gestion-clases" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer">
           <i class="fa-solid fa-chalkboard-user text-sm w-5 text-center text-indigo-600"></i>
@@ -73,7 +73,7 @@
       </ng-container>
 
       <!-- SECCIÓN: COORDINADOR -->
-      <ng-container *ngIf="hasRole('Coordinador')">
+      <ng-container *ngIf="mostrarSeccion('Coordinador')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-amber-500 uppercase">Coordinación</p>
         <a routerLink="/coordinador/validacion" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
           <i class="fa-solid fa-clipboard-check text-sm w-5 text-center text-amber-600"></i>
@@ -86,7 +86,7 @@
       </ng-container>
 
       <!-- SECCIÓN: TRIBUNAL / JURADO -->
-      <ng-container *ngIf="hasRole('Tribunal') || hasRole('Jurado')">
+      <ng-container *ngIf="mostrarSeccion('Jurado')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-purple-400 uppercase">Tribunal Calificador</p>
         <a routerLink="/jurado/evaluacion" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
           <i class="fa-solid fa-gavel text-sm w-5 text-center text-purple-600"></i>
@@ -95,7 +95,7 @@
       </ng-container>
 
       <!-- SECCIÓN: ADMINISTRADOR -->
-      <ng-container *ngIf="hasRole('Administrador')">
+      <ng-container *ngIf="mostrarSeccion('Administrador')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-rose-400 uppercase">Administración</p>
         <a routerLink="/admin/docentes" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
           <i class="fa-solid fa-users-gear text-sm w-5 text-center text-rose-600"></i>
@@ -124,7 +124,7 @@
       </ng-container>
 
       <!-- SECCIÓN: AYUDANTE DE CÁTEDRA -->
-      <ng-container *ngIf="hasRole('Ayudante')">
+      <ng-container *ngIf="mostrarSeccion('Ayudante')">
         <p class="px-3 pb-2 pt-4 text-[10px] font-semibold tracking-widest text-teal-500 uppercase">Ayudantía</p>
         <a routerLink="/ayudante/materias" routerLinkActive="bg-accent/5 text-accent" class="flex items-center gap-3 px-3 py-2.5 rounded-lg relative group transition-colors cursor-pointer">
           <i class="fa-solid fa-book-open text-sm w-5 text-center text-teal-600"></i>
@@ -144,11 +144,11 @@
     <!-- Perfil del Usuario (Footer del Sidebar) -->
     <div class="p-3 shrink-0 border-t border-slate-200">
       <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-100 transition-colors">
-        <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold border-2 border-white shadow-sm">AG</div>
+        <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold border-2 border-white shadow-sm">{{ userInitials }}</div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-slate-900 truncate">Alejandro García</p>
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ userDisplayName }}</p>
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-medium text-emerald-600 border border-emerald-100 mt-0.5 uppercase">
-            {{ rol === 'Estudiante' && esAyudante ? 'Ayudante' : rol }}
+            {{ rol }}
           </span>
         </div>
       </div>
@@ -166,7 +166,7 @@
         </button>
         <div class="min-w-0 overflow-hidden"> <!-- <-- Importante -->
           <h1 class="text-lg md:text-xl font-bold text-slate-900 tracking-tight truncate">
-            Bienvenido, {{ username || 'Alejandro' }}
+            Bienvenido, {{ userDisplayName }}
           </h1>
           <p class="text-[10px] md:text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
@@ -193,11 +193,11 @@
         <div class="flex items-center gap-2">
           <select (change)="cambiarRol($any($event.target).value)"
                   class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer shadow-sm">
-            <option value="Estudiante" [selected]="rol === 'Estudiante' && !esAyudante">Estudiante</option>
-            <option value="Ayudante" [selected]="esAyudante">Ayudante</option>
+            <option value="Estudiante" [selected]="rol === 'Estudiante'">Estudiante</option>
+            <option value="Ayudante" [selected]="rol === 'Ayudante'">Ayudante</option>
             <option value="Docente" [selected]="rol === 'Docente'">Docente</option>
             <option value="Coordinador" [selected]="rol === 'Coordinador'">Coordinador</option>
-            <option value="Jurado" [selected]="rol === 'Jurado'">Jurado (Tribunal)</option>
+            <option value="Jurado" [selected]="rol === 'Jurado' || rol === 'Tribunal'">Jurado (Tribunal)</option>
             <option value="Administrador" [selected]="rol === 'Administrador'">Administrador</option>
           </select>
         </div>

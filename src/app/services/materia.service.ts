@@ -400,13 +400,10 @@ export class MateriaService {
 
   /**
    * Refresca las asignaturas inscritas del estudiante.
-   * Al no existir el endpoint global GET /api/materia en Swagger:
-   * 1. Si el usuario es Estudiante/Ayudante, consulta la ruta disponible:
-   *    GET /api/Estudiante/{id}/validacion-malla
-   * 2. Si la API retorna asignaturas en la respuesta, las mapea y actualiza el estado.
-   * 3. Si la API retorna 404, no contiene materias o aún no implementa el listado,
-   *    se activa el fallback con las materias locales/almacenadas (MATERIAS_DEFAULT),
-   *    garantizando que la interfaz no se rompa ni quede en blanco.
+   * Utiliza las rutas oficiales del backend en .NET (EstudianteController):
+   * 1. GET /api/Estudiante/mis-materias (cátedras del estudiante autenticado)
+   * 2. Fallback: GET /api/Estudiante/{id}/validacion-malla
+   * 3. Fallback seguro en memoria/localStorage (MATERIAS_DEFAULT) para evitar errores 404.
    */
   refreshMaterias(): Observable<MateriaDto[]> {
     const rol = typeof window !== 'undefined' ? (localStorage.getItem('rol') || 'Estudiante') : 'Estudiante';
@@ -418,23 +415,14 @@ export class MateriaService {
       return of(this.materiasSubject.value);
     }
 
-    const endpointEstudiante = `${getApiBase()}/api/Estudiante/${userId}/validacion-malla`;
+    const endpointMisMaterias = `${getApiBase()}/api/Estudiante/mis-materias`;
+    const endpointValidacion = `${getApiBase()}/api/Estudiante/${userId}/validacion-malla`;
 
-    return this.http.get<any>(endpointEstudiante).pipe(
+    return this.http.get<any>(endpointMisMaterias).pipe(
       tap((res) => {
-        let materiasBackend: any[] = [];
-        if (Array.isArray(res)) {
-          materiasBackend = res;
-        } else if (res && typeof res === 'object') {
-          if (Array.isArray(res.materias)) materiasBackend = res.materias;
-          else if (Array.isArray(res.asignaturas)) materiasBackend = res.asignaturas;
-          else if (Array.isArray(res.materiasInscritas)) materiasBackend = res.materiasInscritas;
-          else if (Array.isArray(res.cursos)) materiasBackend = res.cursos;
-          else if (Array.isArray(res.malla)) materiasBackend = res.malla;
-        }
-
+        const materiasBackend = Array.isArray(res) ? res : (res?.materias || []);
         if (materiasBackend.length > 0) {
-          const mapped = materiasBackend.map((item, idx) => this.mapToMateriaDto(item, idx));
+          const mapped = materiasBackend.map((item: any, idx: number) => this.mapToMateriaDto(item, idx));
           const current = this.materiasSubject.value;
           const merged = [...mapped];
           current.forEach(c => {
@@ -447,10 +435,37 @@ export class MateriaService {
         }
       }),
       map(() => this.materiasSubject.value),
-      catchError((err) => {
-        // Fallback local silencioso y seguro: previene que la UI se rompa ante 404 de la API
-        console.warn(`[MateriaService] Backend no entregó asignaturas desde ${endpointEstudiante} (HTTP ${err?.status || 'desconocido'}). Usando asignaturas locales/mock.`);
-        return of(this.materiasSubject.value);
+      catchError(() => {
+        // Fallback a validación de malla
+        return this.http.get<any>(endpointValidacion).pipe(
+          tap((res) => {
+            let materiasBackend: any[] = [];
+            if (Array.isArray(res)) {
+              materiasBackend = res;
+            } else if (res && typeof res === 'object') {
+              if (Array.isArray(res.materias)) materiasBackend = res.materias;
+              else if (Array.isArray(res.asignaturas)) materiasBackend = res.asignaturas;
+              else if (Array.isArray(res.materiasInscritas)) materiasBackend = res.materiasInscritas;
+              else if (Array.isArray(res.cursos)) materiasBackend = res.cursos;
+              else if (Array.isArray(res.malla)) materiasBackend = res.malla;
+            }
+
+            if (materiasBackend.length > 0) {
+              const mapped = materiasBackend.map((item, idx) => this.mapToMateriaDto(item, idx));
+              const current = this.materiasSubject.value;
+              const merged = [...mapped];
+              current.forEach(c => {
+                if (!merged.some(m => Number(m.id) === Number(c.id) || (m.nombre.toLowerCase() === c.nombre.toLowerCase()))) {
+                  merged.push(c);
+                }
+              });
+              this.materiasSubject.next(merged);
+              this.saveStorage(this.STORAGE_MATERIAS, merged);
+            }
+          }),
+          map(() => this.materiasSubject.value),
+          catchError(() => of(this.materiasSubject.value))
+        );
       })
     );
   }
