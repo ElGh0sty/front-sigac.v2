@@ -463,7 +463,6 @@ export class MateriaService {
     }
 
     const endpointMisMaterias = `${getApiBase()}/api/Estudiante/mis-materias`;
-    const endpointValidacion = `${getApiBase()}/api/Estudiante/${userId}/validacion-malla`;
 
     return this.http.get<any>(endpointMisMaterias).pipe(
       tap((res) => {
@@ -483,36 +482,8 @@ export class MateriaService {
       }),
       map(() => this.materiasSubject.value),
       catchError(() => {
-        // Fallback a validación de malla
-        return this.http.get<any>(endpointValidacion).pipe(
-          tap((res) => {
-            let materiasBackend: any[] = [];
-            if (Array.isArray(res)) {
-              materiasBackend = res;
-            } else if (res && typeof res === 'object') {
-              if (Array.isArray(res.materias)) materiasBackend = res.materias;
-              else if (Array.isArray(res.asignaturas)) materiasBackend = res.asignaturas;
-              else if (Array.isArray(res.materiasInscritas)) materiasBackend = res.materiasInscritas;
-              else if (Array.isArray(res.cursos)) materiasBackend = res.cursos;
-              else if (Array.isArray(res.malla)) materiasBackend = res.malla;
-            }
-
-            if (materiasBackend.length > 0) {
-              const mapped = materiasBackend.map((item, idx) => this.mapToMateriaDto(item, idx));
-              const current = this.materiasSubject.value;
-              const merged = [...mapped];
-              current.forEach(c => {
-                if (!merged.some(m => Number(m.id) === Number(c.id) || (m.nombre.toLowerCase() === c.nombre.toLowerCase()))) {
-                  merged.push(c);
-                }
-              });
-              this.materiasSubject.next(merged);
-              this.saveStorage(this.STORAGE_MATERIAS, merged);
-            }
-          }),
-          map(() => this.materiasSubject.value),
-          catchError(() => of(this.materiasSubject.value))
-        );
+        // En caso de que mis-materias no tenga registros previos o falle, usar las materias del store local
+        return of(this.materiasSubject.value);
       })
     );
   }

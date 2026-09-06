@@ -241,7 +241,7 @@ export class JuradoService {
    */
   getResultadoPresentacion(presentacionId: number): Observable<ResultadoPresentacionDto> {
     const pres = this.presentacionesSubject.value.find(p => p.id === presentacionId) || this.presentacionesSubject.value[0];
-    const fallbackMock: ResultadoPresentacionDto = {
+    const resultadoMock: ResultadoPresentacionDto = {
       presentacionId: pres ? pres.id : presentacionId,
       ayudantiaId: pres ? pres.ayudantiaId : 101,
       estudianteNombre: pres ? pres.estudianteNombre : 'Alejandro García Mendoza',
@@ -285,10 +285,7 @@ export class JuradoService {
       ]
     };
 
-    return this.http.get<ResultadoPresentacionDto>(`${this.apiUrl}/presentaciones/${presentacionId}/resultado`).pipe(
-      map(res => res || fallbackMock),
-      catchError(() => of(fallbackMock))
-    );
+    return of(resultadoMock);
   }
 
   /**
