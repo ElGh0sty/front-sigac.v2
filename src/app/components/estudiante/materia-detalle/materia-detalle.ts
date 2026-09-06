@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MateriaService, MateriaDto, RecursoDto, ActividadDto, RegistroAsistenciaDto } from '../../../services/materia.service';
@@ -67,6 +67,7 @@ export class MateriaDetalleComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private materiaService: MateriaService
   ) {}
 
@@ -250,13 +251,8 @@ export class MateriaDetalleComponent implements OnInit, OnDestroy {
   }
 
   calificarActividad(actividadId: number) {
-    const notaPrompt = prompt('Introduce la calificación numérica para el estudiante (ej. 4.8):', '5.0');
-    if (notaPrompt !== null) {
-      const notaNum = parseFloat(notaPrompt);
-      if (!isNaN(notaNum)) {
-        this.materiaService.updateActividadEstado(actividadId, 'calificada', notaNum);
-      }
-    }
+    const rutaBase = this.esAyudante ? '/ayudante' : '/docente';
+    this.router.navigate([`${rutaBase}/actividades`, actividadId, 'calificar']);
   }
 
   eliminarActividad(actividadId: number) {
@@ -270,6 +266,35 @@ export class MateriaDetalleComponent implements OnInit, OnDestroy {
     this.materiaService.addRegistroAsistencia(this.materiaId, this.newClaseTema, this.materia.estudiantes);
     this.newClaseTema = '';
     this.showAddClase = false;
+  }
+
+  Math = Math;
+  busquedaEstudianteAsistencia: string = '';
+  filtroEstadoAsistencia: 'todos' | 'presentes' | 'ausentes' = 'todos';
+
+  getEstudiantesFiltrados(asistentes: any[]): any[] {
+    if (!asistentes) return [];
+    let list = asistentes;
+    if (this.filtroEstadoAsistencia === 'presentes') {
+      list = list.filter(a => a.presente);
+    } else if (this.filtroEstadoAsistencia === 'ausentes') {
+      list = list.filter(a => !a.presente);
+    }
+    if (this.busquedaEstudianteAsistencia.trim()) {
+      const q = this.busquedaEstudianteAsistencia.toLowerCase().trim();
+      list = list.filter(a => a.nombre?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q));
+    }
+    return list;
+  }
+
+  marcarTodosAsistencia(registroId: number, presente: boolean) {
+    const reg = this.registrosAsistencia.find(r => r.id === registroId);
+    if (!reg || !reg.asistentes) return;
+    reg.asistentes.forEach((a, idx) => {
+      if (a.presente !== presente) {
+        this.materiaService.toggleAsistencia(registroId, idx);
+      }
+    });
   }
 
   toggleAsistencia(registroId: number, estudianteIndex: number) {

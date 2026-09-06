@@ -62,7 +62,7 @@
       </div>
     }
 
-    <!-- SECCIÓN DOCENTE: Siempre para Docentes: Mis Cátedras, Calificaciones -->
+    <!-- SECCIÓN DOCENTE: Mis Cátedras y Gestión de Estudiantes -->
     @if (hasRole('Docente')) {
       <div>
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2 block flex items-center justify-between">
@@ -74,13 +74,13 @@
              routerLinkActive="bg-accent/10 text-accent font-semibold"
              class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-xs font-medium">
             <i class="fa-solid fa-chalkboard text-sm w-5 text-center text-indigo-600"></i>
-            <span>Mis Cátedras</span>
+            <span>Mis Cátedras y Clases</span>
           </a>
-          <a routerLink="/docente/actividades/1/calificar"
+          <a routerLink="/docente/gestion-estudiantes"
              routerLinkActive="bg-accent/10 text-accent font-semibold"
              class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-xs font-medium">
-            <i class="fa-solid fa-check-double text-sm w-5 text-center text-emerald-600"></i>
-            <span>Calificaciones</span>
+            <i class="fa-solid fa-users text-sm w-5 text-center text-blue-600"></i>
+            <span>Estudiantes y Matrícula</span>
           </a>
         </div>
       </div>

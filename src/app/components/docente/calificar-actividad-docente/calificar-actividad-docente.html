@@ -2,19 +2,19 @@
   <!-- BREADCRUMB & ACCIONES -->
   <div class="flex items-center justify-between">
     <nav class="flex items-center gap-2 text-xs text-slate-500">
-      <a routerLink="/docente/gestion-clases" class="hover:text-accent flex items-center gap-1">
-        <i class="fa-solid fa-chalkboard-user"></i>
-        <span>Mis Cátedras</span>
+      <a [routerLink]="rutaRetorno" class="hover:text-accent flex items-center gap-1">
+        <i class="fa-solid" [ngClass]="esAyudante ? 'fa-book-open' : 'fa-chalkboard-user'"></i>
+        <span>{{ esAyudante ? 'Mis Cátedras (Ayudantía)' : 'Mis Cátedras' }}</span>
       </a>
       <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
       <span class="text-slate-800 font-medium">{{ actividad?.catedraNombre || 'Cátedra' }}</span>
       <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
       <span class="text-slate-900 font-semibold truncate max-w-xs">Calificación Nominal</span>
     </nav>
-    <a routerLink="/docente/gestion-clases"
+    <a [routerLink]="rutaRetorno"
        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
       <i class="fa-solid fa-arrow-left text-[11px]"></i>
-      <span>Volver a Mis Cátedras</span>
+      <span>{{ esAyudante ? 'Volver a Ayudantía' : 'Volver a Mis Cátedras' }}</span>
     </a>
   </div>
 

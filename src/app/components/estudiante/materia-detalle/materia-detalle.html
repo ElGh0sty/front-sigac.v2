@@ -414,8 +414,8 @@
                 <!-- Docente / Ayudante: Calificar -->
                 <button *ngIf="canEdit"
                         (click)="calificarActividad(a.id)"
-                        class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5">
-                  <i class="fa-solid fa-pen-nib"></i> Calificar
+                        class="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs">
+                  <i class="fa-solid fa-clipboard-check"></i> Revisar y Calificar
                 </button>
 
                 <!-- Docente / Ayudante: Eliminar -->
@@ -470,34 +470,104 @@
           <p class="text-xs text-slate-400 mt-1">Registra sesiones para realizar el seguimiento del estudiantado.</p>
         </div>
 
-        <!-- Listado de Asistencias -->
-        <div *ngFor="let reg of registrosAsistencia" class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
-          <div class="px-5 py-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+        <!-- Listado de Asistencias Optimizado para 20+ Estudiantes -->
+        <div *ngFor="let reg of registrosAsistencia" class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs space-y-3 p-5">
+          <!-- Cabecera de la sesión con métricas -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
-              <p class="text-sm font-bold text-slate-800">{{ reg.tema }}</p>
-              <p class="text-xs text-slate-400 mt-0.5 font-medium">{{ formatearFecha(reg.fecha) }}</p>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-bold text-xs">Sesión</span>
+                <span class="text-xs text-slate-400 font-medium">{{ formatearFecha(reg.fecha) }}</span>
+              </div>
+              <h3 class="text-base font-bold text-slate-900 mt-0.5">{{ reg.tema }}</h3>
             </div>
-            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              {{ contarPresentes(reg.asistentes) }} / {{ reg.asistentes.length }} Presentes
-            </span>
+            
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                {{ contarPresentes(reg.asistentes) }} / {{ reg.asistentes.length }} Presentes
+              </span>
+              <span class="text-xs font-bold px-3 py-1 rounded-full"
+                    [ngClass]="(contarPresentes(reg.asistentes) / (reg.asistentes.length || 1)) >= 0.8 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'">
+                {{ Math.round((contarPresentes(reg.asistentes) / (reg.asistentes.length || 1)) * 100) }}% Asistencia
+              </span>
+            </div>
           </div>
 
-          <div class="divide-y divide-slate-100">
-            <div *ngFor="let est of reg.asistentes; let ei = index" class="flex items-center justify-between px-5 py-3 hover:bg-slate-50/50 transition-colors">
-              <div>
-                <p class="text-sm font-semibold text-slate-800">{{ est.nombre }}</p>
-                <p class="text-xs text-slate-400">{{ est.email }}</p>
+          <!-- Barra de Herramientas para el Docente/Ayudante -->
+          <div *ngIf="canEdit" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
+            <!-- Buscador en tiempo real -->
+            <div class="relative flex-1 max-w-sm">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+              <input type="text"
+                     [(ngModel)]="busquedaEstudianteAsistencia"
+                     placeholder="Buscar alumno por nombre o correo..."
+                     class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 transition-all" />
+            </div>
+
+            <!-- Filtros de Asistencia -->
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs shrink-0">
+              <button (click)="filtroEstadoAsistencia = 'todos'"
+                      class="px-2.5 py-1 rounded-lg font-medium transition-all"
+                      [ngClass]="filtroEstadoAsistencia === 'todos' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'">
+                Todos ({{ reg.asistentes.length }})
+              </button>
+              <button (click)="filtroEstadoAsistencia = 'presentes'"
+                      class="px-2.5 py-1 rounded-lg font-medium transition-all"
+                      [ngClass]="filtroEstadoAsistencia === 'presentes' ? 'bg-white text-emerald-700 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'">
+                Presentes ({{ contarPresentes(reg.asistentes) }})
+              </button>
+              <button (click)="filtroEstadoAsistencia = 'ausentes'"
+                      class="px-2.5 py-1 rounded-lg font-medium transition-all"
+                      [ngClass]="filtroEstadoAsistencia === 'ausentes' ? 'bg-white text-rose-700 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'">
+                Ausentes ({{ reg.asistentes.length - contarPresentes(reg.asistentes) }})
+              </button>
+            </div>
+
+            <!-- Acciones en Lote -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button (click)="marcarTodosAsistencia(reg.id, true)"
+                      class="px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-check-double text-emerald-600"></i> Todos Presentes
+              </button>
+              <button (click)="marcarTodosAsistencia(reg.id, false)"
+                      class="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 rounded-xl transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-xmark"></i> Todos Ausentes
+              </button>
+            </div>
+          </div>
+
+          <!-- Cuadrícula Optimizada de Alumnos (2 Columnas) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2">
+            <div *ngFor="let est of getEstudiantesFiltrados(reg.asistentes); let ei = index"
+                 (click)="canEdit ? toggleAsistencia(reg.id, ei) : null"
+                 class="flex items-center justify-between p-3 rounded-xl border transition-all"
+                 [ngClass]="{
+                   'cursor-pointer select-none': canEdit,
+                   'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50/70': est.presente,
+                   'bg-white border-slate-200 hover:bg-slate-50': !est.presente
+                 }">
+              
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors"
+                     [ngClass]="est.presente ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 border border-slate-200'">
+                  {{ est.nombre.substring(0, 2).toUpperCase() }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-slate-900 truncate">{{ est.nombre }}</p>
+                  <p class="text-[11px] text-slate-400 truncate">{{ est.email }}</p>
+                </div>
               </div>
 
-              <button *ngIf="canEdit" (click)="toggleAsistencia(reg.id, ei)"
-                      class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border transition-all"
-                      [ngClass]="est.presente ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'">
-                <i class="fa-solid" [ngClass]="est.presente ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
-                {{ est.presente ? 'Presente' : 'Ausente' }}
+              <!-- Botón de Asistencia -->
+              <button *ngIf="canEdit" type="button"
+                      class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 flex items-center gap-1.5 shadow-2xs"
+                      [ngClass]="est.presente ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'">
+                <i class="fa-solid" [ngClass]="est.presente ? 'fa-check' : 'fa-xmark text-slate-400'"></i>
+                <span>{{ est.presente ? 'Presente' : 'Ausente' }}</span>
               </button>
 
               <span *ngIf="!canEdit"
-                    class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border"
+                    class="px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1"
                     [ngClass]="est.presente ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'">
                 <i class="fa-solid" [ngClass]="est.presente ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
                 {{ est.presente ? 'Presente' : 'Ausente' }}

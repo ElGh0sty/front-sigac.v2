@@ -1,58 +1,886 @@
-<div class="space-y-6">
-  <div>
-    <h2 class="text-2xl font-bold text-slate-900">Gestión de Estudiantes</h2>
-    <p class="text-slate-500 text-sm mt-1">Añade estudiantes a una materia existente.</p>
-  </div>
-
-  <!-- Success Alert -->
-  <div *ngIf="successMessage" class="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl flex items-center gap-2.5">
-    <i class="fa-solid fa-circle-check text-emerald-500"></i>
-    <span>{{ successMessage }}</span>
-  </div>
-
-  <!-- Error Alert -->
-  <div *ngIf="errorMessage" class="p-3.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2.5">
-    <i class="fa-solid fa-circle-exclamation text-red-500"></i>
-    <span>{{ errorMessage }}</span>
-  </div>
-
-  <section class="glass-card rounded-2xl p-6 border border-slate-200">
-    <!-- Selector de materia -->
+<div class="space-y-6 pb-12">
+  <!-- ENCABEZADO Y SELECTOR DE CÁTEDRA -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
     <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1">Selecciona una Materia</label>
-      <select [(ngModel)]="materiaSeleccionadaId" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none bg-white">
-        <option [value]="0">Selecciona una materia...</option>
-        <option *ngFor="let m of materias" [value]="m.id">{{ m.nombre }} ({{ m.codigo || 'MAT' }})</option>
-      </select>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2.5 py-0.5 rounded-full">
+          Aula y Alumnado
+        </span>
+        @if (materiaSeleccionada) {
+          <span class="text-xs font-semibold text-slate-500">
+            {{ materiaSeleccionada.codigo }} • {{ materiaSeleccionada.semestre || '2026-2' }}
+          </span>
+        }
+      </div>
+      <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Gestión Integral de Estudiantes</h1>
+      <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+        Control de nómina oficial, rendimiento académico, equipos de trabajo y acompañamiento pedagógico del aula.
+      </p>
     </div>
 
-    <!-- Buscador de estudiantes -->
-    <div class="flex items-end gap-2 mt-4">
-      <div class="flex-1">
-        <label class="block text-sm font-medium text-slate-700 mb-1">Buscar estudiante por correo</label>
-        <input type="email" [(ngModel)]="correoBusqueda" name="correoBusqueda" (keyup.enter)="buscarYAgregarEstudiante()" placeholder="ej: estudiante@institucion.edu" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none bg-white" />
+    <!-- Selector de Cátedra Activa -->
+    <div class="flex items-center gap-2.5 shrink-0">
+      <div class="w-full sm:w-72">
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cátedra Activa</label>
+        <div class="relative">
+          <select [ngModel]="materiaSeleccionadaId" (ngModelChange)="seleccionarMateria($event)"
+                  class="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all appearance-none cursor-pointer">
+            @for (m of materias; track m.id) {
+              <option [value]="m.id">{{ m.nombre }} ({{ m.codigo }}) - {{ m.grupo || 'Grupo A' }}</option>
+            }
+          </select>
+          <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+        </div>
       </div>
-      <button type="button" (click)="buscarYAgregarEstudiante()" class="py-2 px-4 bg-accent text-white rounded-lg hover:bg-accent-dim transition-colors">
-        Añadir
+    </div>
+  </div>
+
+  <!-- ALERTAS DE ÉXITO O ERROR -->
+  @if (successMessage) {
+    <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium rounded-xl flex items-center justify-between gap-3 shadow-xs animate-fade-in">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+        <span>{{ successMessage }}</span>
+      </div>
+      <button (click)="successMessage = ''" class="text-emerald-500 hover:text-emerald-700 p-1">
+        <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
+  }
 
-    <!-- Lista de estudiantes seleccionados -->
-    <div *ngIf="estudiantesSeleccionados.length > 0" class="border border-slate-200 rounded-lg p-3 mt-4">
-      <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Estudiantes añadidos ({{ estudiantesSeleccionados.length }}):</p>
-      <div *ngFor="let e of estudiantesSeleccionados" class="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">
-        <div>
-          <p class="text-sm font-medium text-slate-800">{{ e.nombre }}</p>
-          <p class="text-xs text-slate-400">{{ e.correo }}</p>
+  @if (errorMessage) {
+    <div class="p-4 bg-red-50 border border-red-200 text-red-800 text-xs font-medium rounded-xl flex items-center justify-between gap-3 shadow-xs animate-fade-in">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-circle-exclamation text-red-600 text-base"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+      <button (click)="errorMessage = ''" class="text-red-500 hover:text-red-700 p-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+
+  <!-- MÉTRICAS EN VIVO DEL AULA -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+    <!-- Total Estudiantes -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-slate-400 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Matriculados</span>
+        <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-users"></i>
         </div>
-        <button type="button" (click)="eliminarEstudiante(e.id)" class="text-xs text-red-600 hover:text-red-800">
-          Eliminar
+      </div>
+      <div>
+        <span class="text-2xl font-black text-slate-900">{{ totalEstudiantes }}</span>
+        <span class="text-[11px] text-slate-500 block mt-0.5">En nómina oficial</span>
+      </div>
+    </div>
+
+    <!-- Promedio General -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-slate-400 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Promedio Aula</span>
+        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-baseline gap-1">
+          <span class="text-2xl font-black text-slate-900">{{ promedioGeneral }}</span>
+          <span class="text-xs font-semibold text-slate-400">/ 5.0</span>
+        </div>
+        <span class="text-[11px] text-emerald-600 font-semibold block mt-0.5">Rendimiento óptimo</span>
+      </div>
+    </div>
+
+    <!-- Asistencia Promedio -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-slate-400 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Asistencia</span>
+        <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-clipboard-user"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-baseline gap-1">
+          <span class="text-2xl font-black text-slate-900">{{ asistenciaPromedio }}%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+          <div class="bg-blue-600 h-full rounded-full transition-all" [style.width.%]="asistenciaPromedio"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alumnos en Riesgo -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between"
+         [class.border-amber-300]="enRiesgoCount > 0" [class.bg-amber-50/20]="enRiesgoCount > 0">
+      <div class="flex items-center justify-between text-slate-400 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700">En Riesgo</span>
+        <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+      <div>
+        <span class="text-2xl font-black" [class.text-amber-700]="enRiesgoCount > 0" [class.text-slate-900]="enRiesgoCount === 0">
+          {{ enRiesgoCount }}
+        </span>
+        <span class="text-[11px] text-amber-600 font-semibold block mt-0.5">Alerta y seguimiento</span>
+      </div>
+    </div>
+
+    <!-- Alumnos Destacados -->
+    <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+      <div class="flex items-center justify-between text-slate-400 mb-1.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Destacados</span>
+        <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-award"></i>
+        </div>
+      </div>
+      <div>
+        <span class="text-2xl font-black text-slate-900">{{ destacadosCount }}</span>
+        <span class="text-[11px] text-purple-600 font-semibold block mt-0.5">Nota ≥ 4.7 pts</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVEGACIÓN DE PESTAÑAS PRINCIPALES DEL AULA -->
+  <div class="border-b border-slate-200 bg-white px-2 pt-2 rounded-2xl shadow-xs">
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <button (click)="tabActiva = 'nomina'"
+              class="px-4 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap"
+              [class.border-indigo-600]="tabActiva === 'nomina'"
+              [class.text-indigo-600]="tabActiva === 'nomina'"
+              [class.border-transparent]="tabActiva !== 'nomina'"
+              [class.text-slate-500]="tabActiva !== 'nomina'"
+              [class.hover:text-slate-800]="tabActiva !== 'nomina'">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Nómina Oficial</span>
+        <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold"
+              [class.bg-indigo-100]="tabActiva === 'nomina'"
+              [class.text-indigo-700]="tabActiva === 'nomina'"
+              [class.bg-slate-100]="tabActiva !== 'nomina'"
+              [class.text-slate-600]="tabActiva !== 'nomina'">
+          {{ totalEstudiantes }}
+        </span>
+      </button>
+
+      <button (click)="tabActiva = 'matriculacion'"
+              class="px-4 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap"
+              [class.border-indigo-600]="tabActiva === 'matriculacion'"
+              [class.text-indigo-600]="tabActiva === 'matriculacion'"
+              [class.border-transparent]="tabActiva !== 'matriculacion'"
+              [class.text-slate-500]="tabActiva !== 'matriculacion'"
+              [class.hover:text-slate-800]="tabActiva !== 'matriculacion'">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Matricular Estudiantes</span>
+      </button>
+
+      <button (click)="tabActiva = 'comunicados'"
+              class="px-4 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap"
+              [class.border-indigo-600]="tabActiva === 'comunicados'"
+              [class.text-indigo-600]="tabActiva === 'comunicados'"
+              [class.border-transparent]="tabActiva !== 'comunicados'"
+              [class.text-slate-500]="tabActiva !== 'comunicados'"
+              [class.hover:text-slate-800]="tabActiva !== 'comunicados'">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span>Comunicados al Aula</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: NÓMINA OFICIAL Y GESTIÓN DE ALUMNOS                                -->
+  <!-- ========================================================================= -->
+  @if (tabActiva === 'nomina') {
+    <div class="space-y-4">
+      <!-- Barra de Filtros, Búsqueda y Acciones Rápidas -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <!-- Búsqueda rápida -->
+        <div class="relative flex-1 min-w-[240px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input type="text" [(ngModel)]="busqueda" placeholder="Buscar por nombre, correo, cédula o matrícula..."
+                 class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-200 focus:bg-white transition-all text-slate-800 font-medium" />
+          @if (busqueda) {
+            <button (click)="busqueda = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          }
+        </div>
+
+        <!-- Filtro de Estado -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <button (click)="filtroEstado = 'todos'"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                  [class.bg-slate-900]="filtroEstado === 'todos'"
+                  [class.text-white]="filtroEstado === 'todos'"
+                  [class.bg-slate-100]="filtroEstado !== 'todos'"
+                  [class.text-slate-600]="filtroEstado !== 'todos'">
+            Todos ({{ totalEstudiantes }})
+          </button>
+
+          <button (click)="filtroEstado = 'Destacado'"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                  [class.bg-purple-600]="filtroEstado === 'Destacado'"
+                  [class.text-white]="filtroEstado === 'Destacado'"
+                  [class.bg-purple-50]="filtroEstado !== 'Destacado'"
+                  [class.text-purple-700]="filtroEstado !== 'Destacado'">
+            <i class="fa-solid fa-award mr-1"></i> Destacados ({{ destacadosCount }})
+          </button>
+
+          <button (click)="filtroEstado = 'Regular'"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                  [class.bg-indigo-600]="filtroEstado === 'Regular'"
+                  [class.text-white]="filtroEstado === 'Regular'"
+                  [class.bg-indigo-50]="filtroEstado !== 'Regular'"
+                  [class.text-indigo-700]="filtroEstado !== 'Regular'">
+            Regulares
+          </button>
+
+          <button (click)="filtroEstado = 'En Riesgo'"
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                  [class.bg-amber-600]="filtroEstado === 'En Riesgo'"
+                  [class.text-white]="filtroEstado === 'En Riesgo'"
+                  [class.bg-amber-50]="filtroEstado !== 'En Riesgo'"
+                  [class.text-amber-700]="filtroEstado !== 'En Riesgo'">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i> En Riesgo ({{ enRiesgoCount }})
+          </button>
+        </div>
+
+        <!-- Orden y Botones Exportar -->
+        <div class="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+          <select [(ngModel)]="orden" class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none">
+            <option value="nombre-asc">Nombre A-Z</option>
+            <option value="nombre-desc">Nombre Z-A</option>
+            <option value="nota-desc">Mejor Nota</option>
+            <option value="nota-asc">Menor Nota</option>
+            <option value="asistencia-desc">Mayor Asistencia</option>
+            <option value="asistencia-asc">Menor Asistencia</option>
+          </select>
+
+          <!-- Toggle Tabla/Tarjetas -->
+          <div class="flex items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+            <button (click)="vistaModo = 'tabla'" class="px-2 py-1 rounded text-xs"
+                    [class.bg-white]="vistaModo === 'tabla'" [class.shadow-xs]="vistaModo === 'tabla'" [class.text-slate-900]="vistaModo === 'tabla'" [class.text-slate-400]="vistaModo !== 'tabla'"
+                    title="Vista Tabla">
+              <i class="fa-solid fa-table-list"></i>
+            </button>
+            <button (click)="vistaModo = 'tarjetas'" class="px-2 py-1 rounded text-xs"
+                    [class.bg-white]="vistaModo === 'tarjetas'" [class.shadow-xs]="vistaModo === 'tarjetas'" [class.text-slate-900]="vistaModo === 'tarjetas'" [class.text-slate-400]="vistaModo !== 'tarjetas'"
+                    title="Vista Tarjetas">
+              <i class="fa-solid fa-grip"></i>
+            </button>
+          </div>
+
+          <!-- Exportar CSV -->
+          <button (click)="exportarCSV()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5" title="Descargar CSV Oficial">
+            <i class="fa-solid fa-file-csv"></i>
+            <span class="hidden sm:inline">CSV</span>
+          </button>
+
+          <!-- Imprimir Acta -->
+          <button (click)="imprimirActa()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5" title="Imprimir Nómina">
+            <i class="fa-solid fa-print"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- VISTA 1: TABLA DETALLADA -->
+      @if (vistaModo === 'tabla') {
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
+                  <th class="py-3.5 px-4">Estudiante / Matrícula</th>
+                  <th class="py-3.5 px-3">Cédula</th>
+                  <th class="py-3.5 px-3">Carrera</th>
+                  <th class="py-3.5 px-3 text-center">Nota Promedio</th>
+                  <th class="py-3.5 px-3 text-center">Asistencia</th>
+                  <th class="py-3.5 px-3 text-center">Tareas</th>
+                  <th class="py-3.5 px-3 text-center">Estado</th>
+                  <th class="py-3.5 px-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                @for (est of estudiantesFiltrados; track est.id) {
+                  <tr class="hover:bg-slate-50/70 transition-colors cursor-pointer" (click)="abrirFichaEstudiante(est)">
+                    <!-- Estudiante -->
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs shrink-0 border border-indigo-200">
+                          {{ getIniciales(est.nombre) }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate">{{ est.nombre }}</p>
+                          <p class="text-[11px] text-slate-400 truncate">{{ est.correo }}</p>
+                          <span class="text-[10px] text-slate-400 font-mono">{{ est.matricula || '2024-IS' }}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Cédula -->
+                    <td class="py-3 px-3 font-mono text-[11px] text-slate-500">
+                      {{ est.cedula || '1720000000' }}
+                    </td>
+
+                    <!-- Carrera -->
+                    <td class="py-3 px-3 text-slate-600 text-xs">
+                      {{ est.carrera || 'Ingeniería de Software' }}
+                    </td>
+
+                    <!-- Nota Promedio -->
+                    <td class="py-3 px-3 text-center">
+                      <span class="inline-block px-2.5 py-0.5 rounded-full font-black text-xs"
+                            [class.bg-emerald-100]="(est.nota ?? 0) >= 4.7"
+                            [class.text-emerald-800]="(est.nota ?? 0) >= 4.7"
+                            [class.bg-indigo-100]="(est.nota ?? 0) >= 4.0 && (est.nota ?? 0) < 4.7"
+                            [class.text-indigo-800]="(est.nota ?? 0) >= 4.0 && (est.nota ?? 0) < 4.7"
+                            [class.bg-amber-100]="(est.nota ?? 0) < 4.0"
+                            [class.text-amber-800]="(est.nota ?? 0) < 4.0">
+                        {{ est.nota !== undefined ? (est.nota | number:'1.1-1') : '4.5' }}
+                      </span>
+                    </td>
+
+                    <!-- Asistencia -->
+                    <td class="py-3 px-3 text-center">
+                      <div class="flex flex-col items-center">
+                        <span class="font-bold text-xs" [class.text-red-600]="(est.asistencia ?? 0) < 75" [class.text-slate-800]="(est.asistencia ?? 0) >= 75">
+                          {{ est.asistencia ?? 100 }}%
+                        </span>
+                        <div class="w-16 bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
+                          <div class="h-full rounded-full"
+                               [class.bg-emerald-500]="(est.asistencia ?? 0) >= 85"
+                               [class.bg-amber-500]="(est.asistencia ?? 0) >= 75 && (est.asistencia ?? 0) < 85"
+                               [class.bg-red-500]="(est.asistencia ?? 0) < 75"
+                               [style.width.%]="est.asistencia ?? 100"></div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Tareas Entregadas -->
+                    <td class="py-3 px-3 text-center">
+                      <span class="text-xs font-bold text-slate-700">
+                        {{ est.tareasEntregadas ?? 5 }}/{{ est.totalTareas ?? 6 }}
+                      </span>
+                    </td>
+
+                    <!-- Estado -->
+                    <td class="py-3 px-3 text-center">
+                      @if (est.estado === 'Destacado' || (est.nota !== undefined && est.nota >= 4.7)) {
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          Destacado
+                        </span>
+                      } @else if (est.estado === 'En Riesgo' || (est.nota !== undefined && est.nota < 4.0) || (est.asistencia !== undefined && est.asistencia < 80)) {
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center gap-1">
+                          <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> En Riesgo
+                        </span>
+                      } @else {
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          Regular
+                        </span>
+                      }
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="py-3 px-4 text-right">
+                      <div class="flex items-center justify-end gap-1" (click)="$event.stopPropagation()">
+                        <!-- Ver Ficha -->
+                        <button (click)="abrirFichaEstudiante(est)"
+                                class="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-1.5 transition-colors text-xs font-semibold"
+                                title="Ver Expediente Completo">
+                          <i class="fa-solid fa-id-card text-xs text-indigo-500"></i>
+                          <span>Expediente</span>
+                        </button>
+
+                        <!-- Alerta Pedagógica -->
+                        <button (click)="abrirAlertaEstudiante(est, $event)"
+                                class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-colors"
+                                title="Enviar Alerta Pedagógica / Citar a Tutoría">
+                          <i class="fa-solid fa-bell text-xs"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="8" class="py-12 text-center text-slate-400">
+                      <i class="fa-solid fa-user-slash text-3xl mb-2 text-slate-300"></i>
+                      <p class="text-sm font-semibold text-slate-600">No se encontraron estudiantes con los filtros aplicados</p>
+                      <p class="text-xs text-slate-400 mt-0.5">Prueba cambiando los criterios de búsqueda o matricula nuevos alumnos.</p>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- VISTA 2: TARJETAS / MOSAICO -->
+      @if (vistaModo === 'tarjetas') {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          @for (est of estudiantesFiltrados; track est.id) {
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col justify-between"
+                 (click)="abrirFichaEstudiante(est)">
+              <div>
+                <div class="flex items-start justify-between gap-2 mb-3">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shrink-0 border border-indigo-200">
+                      {{ getIniciales(est.nombre) }}
+                    </div>
+                    <div class="min-w-0">
+                      <h4 class="font-bold text-slate-900 text-xs leading-snug truncate">{{ est.nombre }}</h4>
+                      <p class="text-[11px] text-slate-400 truncate">{{ est.correo }}</p>
+                    </div>
+                  </div>
+
+                  @if (est.estado === 'Destacado' || (est.nota !== undefined && est.nota >= 4.7)) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+                      Top
+                    </span>
+                  } @else if (est.estado === 'En Riesgo' || (est.nota !== undefined && est.nota < 4.0) || (est.asistencia !== undefined && est.asistencia < 80)) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0 flex items-center gap-1">
+                      <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Alerta
+                    </span>
+                  }
+                </div>
+
+                <!-- Métricas del Alumno -->
+                <div class="grid grid-cols-3 gap-1.5 p-2 bg-slate-50 rounded-xl text-center mb-3">
+                  <div>
+                    <span class="text-[10px] font-medium text-slate-400 block">Promedio</span>
+                    <span class="text-xs font-black text-slate-800">{{ est.nota !== undefined ? (est.nota | number:'1.1-1') : '4.5' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-medium text-slate-400 block">Asistencia</span>
+                    <span class="text-xs font-black text-slate-800">{{ est.asistencia ?? 100 }}%</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-medium text-slate-400 block">Tareas</span>
+                    <span class="text-xs font-black text-slate-800">{{ est.tareasEntregadas ?? 5 }}/{{ est.totalTareas ?? 6 }}</span>
+                  </div>
+                </div>
+
+                <div class="text-[11px] text-slate-500 space-y-0.5">
+                  <p><span class="text-slate-400 font-medium">Matrícula:</span> {{ est.matricula || '2024-IS' }}</p>
+                  <p><span class="text-slate-400 font-medium">Cédula:</span> {{ est.cedula || '1720000000' }}</p>
+                </div>
+              </div>
+
+              <!-- Acciones de tarjeta -->
+              <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between" (click)="$event.stopPropagation()">
+                <button (click)="abrirFichaEstudiante(est)" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">
+                  <i class="fa-solid fa-id-card"></i> Ver Expediente
+                </button>
+                <div class="flex items-center gap-1">
+                  <button (click)="abrirAlertaEstudiante(est, $event)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-colors"
+                          title="Enviar Alerta Pedagógica / Citar a Tutoría">
+                    <i class="fa-solid fa-bell text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: MATRICULAR ESTUDIANTES AL AULA                                     -->
+  <!-- ========================================================================= -->
+  @if (tabActiva === 'matriculacion') {
+    <div class="space-y-4">
+      <!-- Subtabs de matriculación -->
+      <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button (click)="subTabMatricula = 'individual'"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
+                [class.bg-indigo-600]="subTabMatricula === 'individual'"
+                [class.text-white]="subTabMatricula === 'individual'"
+                [class.bg-slate-100]="subTabMatricula !== 'individual'"
+                [class.text-slate-600]="subTabMatricula !== 'individual'">
+          <i class="fa-solid fa-user-plus mr-1.5"></i> Registro Individual
+        </button>
+
+        <button (click)="subTabMatricula = 'masiva'"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
+                [class.bg-indigo-600]="subTabMatricula === 'masiva'"
+                [class.text-white]="subTabMatricula === 'masiva'"
+                [class.bg-slate-100]="subTabMatricula !== 'masiva'"
+                [class.text-slate-600]="subTabMatricula !== 'masiva'">
+          <i class="fa-solid fa-file-import mr-1.5"></i> Carga Masiva (Pegar Lista / CSV)
+        </button>
+
+        <button (click)="subTabMatricula = 'directorio'"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all"
+                [class.bg-indigo-600]="subTabMatricula === 'directorio'"
+                [class.text-white]="subTabMatricula === 'directorio'"
+                [class.bg-slate-100]="subTabMatricula !== 'directorio'"
+                [class.text-slate-600]="subTabMatricula !== 'directorio'">
+          <i class="fa-solid fa-address-book mr-1.5"></i> Directorio General Institucional
+        </button>
+      </div>
+
+      <!-- 2.1 FORMULARIO INDIVIDUAL -->
+      @if (subTabMatricula === 'individual') {
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-2xl">
+          <h3 class="text-sm font-bold text-slate-900 mb-1">Matricular Estudiante Individualmente</h3>
+          <p class="text-xs text-slate-500 mb-5">Ingresa los datos oficiales del alumno para vincularlo a {{ materiaSeleccionada?.nombre }}.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nombres y Apellidos *</label>
+              <input type="text" [(ngModel)]="nuevoEstudiante.nombre" placeholder="Ej: Roberto Viteri Morales"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Correo Institucional *</label>
+              <input type="email" [(ngModel)]="nuevoEstudiante.correo" placeholder="Ej: r.viteri@uni.edu"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Cédula de Identidad</label>
+              <input type="text" [(ngModel)]="nuevoEstudiante.cedula" placeholder="Ej: 1729384910"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Código de Matrícula</label>
+              <input type="text" [(ngModel)]="nuevoEstudiante.matricula" placeholder="Ej: 2024-IS-050"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Carrera</label>
+              <input type="text" [(ngModel)]="nuevoEstudiante.carrera" placeholder="Ej: Ingeniería de Software"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono / WhatsApp</label>
+              <input type="text" [(ngModel)]="nuevoEstudiante.telefono" placeholder="Ej: +593 99 876 5432"
+                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button (click)="tabActiva = 'nomina'" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">
+              Cancelar
+            </button>
+            <button (click)="registrarEstudianteIndividual()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2">
+              <i class="fa-solid fa-check"></i> Matricular en Cátedra
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- 2.2 CARGA MASIVA (PEGAR LISTA) -->
+      @if (subTabMatricula === 'masiva') {
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-3xl space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 mb-1">Carga Rápida de Nómina (Copiar y Pegar)</h3>
+            <p class="text-xs text-slate-500">
+              Pega una lista de estudiantes copiada desde Excel, una lista de correos o formato CSV separado por coma o tabulador.
+            </p>
+            <div class="mt-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 font-mono">
+              Formato admitido: <strong>Nombre Completo, correo&#64;uni.edu, Cédula, Matrícula</strong> (o simplemente un correo por línea).
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Pega aquí los datos:</label>
+            <textarea [(ngModel)]="textoCargaMasiva" (ngModelChange)="procesarTextoMasivo()" rows="6"
+                      placeholder="Juan Pérez, j.perez@uni.edu, 1729384911, 2024-IS-051&#10;María Gómez, m.gomez@uni.edu, 1729384912, 2024-IS-052"
+                      class="w-full p-3 text-xs font-mono border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200"></textarea>
+          </div>
+
+          @if (estudiantesParseados.length > 0) {
+            <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-indigo-900">
+                  <i class="fa-solid fa-list-check mr-1 text-indigo-600"></i> Se detectaron {{ estudiantesParseados.length }} estudiantes para matricular:
+                </span>
+              </div>
+              <div class="max-h-48 overflow-y-auto divide-y divide-indigo-100 text-xs">
+                @for (item of estudiantesParseados; track item.correo) {
+                  <div class="py-1.5 flex items-center justify-between text-indigo-900 font-medium">
+                    <span>{{ item.nombre }} ({{ item.correo }})</span>
+                    <span class="font-mono text-[11px] text-indigo-600">{{ item.matricula }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="pt-2 flex items-center justify-end gap-3">
+            <button (click)="textoCargaMasiva = ''; estudiantesParseados = []" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">
+              Limpiar
+            </button>
+            <button (click)="confirmarCargaMasiva()" [disabled]="estudiantesParseados.length === 0"
+                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Incorporar {{ estudiantesParseados.length }} Estudiantes
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- 2.3 DIRECTORIO GENERAL -->
+      @if (subTabMatricula === 'directorio') {
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 mb-1">Directorio Institucional de Alumnos Disponibles</h3>
+            <p class="text-xs text-slate-500">Selecciona alumnos del padrón general universitario para agregarlos de inmediato a esta cátedra.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            @for (dir of directorioGeneral; track dir.id) {
+              <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <h4 class="text-xs font-bold text-slate-900 truncate">{{ dir.nombre }}</h4>
+                  <p class="text-[11px] text-slate-500 truncate">{{ dir.correo }}</p>
+                  <span class="text-[10px] text-slate-400 font-mono">{{ dir.matricula }}</span>
+                </div>
+                <button (click)="matricularDelDirectorio(dir)"
+                        class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all shrink-0">
+                  <i class="fa-solid fa-plus mr-1"></i> Añadir
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: COMUNICADOS Y AVISOS AL AULA                                       -->
+  <!-- ========================================================================= -->
+  @if (tabActiva === 'comunicados') {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Formulario para Redactar Comunicado -->
+      <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Enviar Comunicado o Aviso al Aula</h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Notifica a los estudiantes matriculados en {{ materiaSeleccionada?.nombre }} sobre tareas, fechas de examen o tutorías.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Destinatarios</label>
+            <select [(ngModel)]="comunicadoDestinatarios" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 font-medium">
+              <option value="todos">Todo el Curso ({{ totalEstudiantes }} estudiantes)</option>
+              <option value="en-riesgo">Solo Alumnos en Alerta Temprana / Riesgo ({{ enRiesgoCount }})</option>
+              <option value="destacados">Solo Alumnos Destacados ({{ destacadosCount }})</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nivel de Prioridad</label>
+            <select [(ngModel)]="comunicadoPrioridad" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 font-medium">
+              <option value="normal">Normal (Informativo de Aula)</option>
+              <option value="urgente">Urgente (Notificación y Correo Inmediato)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Asunto del Comunicado *</label>
+          <input type="text" [(ngModel)]="comunicadoAsunto" placeholder="Ej: Material preparatorio para la prueba de Integrales Triples"
+                 class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 font-medium" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Mensaje para el Aula *</label>
+          <textarea [(ngModel)]="comunicadoMensaje" rows="5" placeholder="Escribe aquí las instrucciones detalladas para los estudiantes..."
+                    class="w-full p-3.5 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 font-normal leading-relaxed"></textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end">
+          <button (click)="enviarComunicado()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Enviar Comunicado al Aula
+          </button>
+        </div>
+      </div>
+
+      <!-- Historial de Comunicados del Aula -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+          <span>Avisos Emitidos</span>
+          <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full text-[10px] font-bold">
+            {{ historialComunicados.length }}
+          </span>
+        </h4>
+
+        <div class="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+          @for (c of historialComunicados; track c.id) {
+            <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 space-y-1.5">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                  {{ c.destinatarios }}
+                </span>
+                <span class="text-[10px] text-slate-400">{{ c.fecha }}</span>
+              </div>
+              <h5 class="text-xs font-bold text-slate-900">{{ c.asunto }}</h5>
+              <p class="text-[11px] text-slate-600 line-clamp-3 leading-relaxed">{{ c.mensaje }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: EXPEDIENTE / FICHA INTEGRAL DEL ESTUDIANTE                         -->
+<!-- ========================================================================= -->
+@if (modalDetalleEstudiante && estudianteDetalle) {
+  <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" (click)="cerrarFichaEstudiante()">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <!-- Cabecera de la Ficha -->
+      <div class="flex items-start justify-between pb-4 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-base border border-indigo-200 shrink-0">
+            {{ getIniciales(estudianteDetalle.nombre) }}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900">{{ estudianteDetalle.nombre }}</h3>
+              @if (estudianteDetalle.estado === 'Destacado') {
+                <span class="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Destacado</span>
+              } @else if (estudianteDetalle.estado === 'En Riesgo') {
+                <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">En Riesgo</span>
+              }
+            </div>
+            <p class="text-xs text-slate-500">{{ estudianteDetalle.correo }}</p>
+            <p class="text-[11px] text-slate-400 font-mono">Matrícula: {{ estudianteDetalle.matricula }} • CI: {{ estudianteDetalle.cedula }}</p>
+          </div>
+        </div>
+        <button (click)="cerrarFichaEstudiante()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Tarjetas de Métricas -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="p-3 bg-slate-50 rounded-xl text-center border border-slate-100">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nota Promedio</span>
+          <span class="text-xl font-black text-slate-900 mt-0.5 block">
+            {{ estudianteDetalle.nota !== undefined ? (estudianteDetalle.nota | number:'1.1-1') : '4.5' }}
+          </span>
+          <span class="text-[10px] text-slate-500">Escala / 5.0</span>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl text-center border border-slate-100">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Asistencia</span>
+          <span class="text-xl font-black text-slate-900 mt-0.5 block">
+            {{ estudianteDetalle.asistencia ?? 100 }}%
+          </span>
+          <span class="text-[10px] text-slate-500">Sesiones válidas</span>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl text-center border border-slate-100">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tareas</span>
+          <span class="text-xl font-black text-slate-900 mt-0.5 block">
+            {{ estudianteDetalle.tareasEntregadas ?? 5 }}/{{ estudianteDetalle.totalTareas ?? 6 }}
+          </span>
+          <span class="text-[10px] text-slate-500">Talleres entregados</span>
+        </div>
+      </div>
+
+      <!-- Información Complementaria -->
+      <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 text-xs text-slate-700 space-y-1 mb-5">
+        <p><strong class="text-slate-900">Carrera Universitaria:</strong> {{ estudianteDetalle.carrera || 'Ingeniería de Software' }}</p>
+        <p><strong class="text-slate-900">Cátedra Actual:</strong> {{ materiaSeleccionada?.nombre }} ({{ materiaSeleccionada?.codigo }})</p>
+        <p><strong class="text-slate-900">Contacto Teléfono:</strong> {{ estudianteDetalle.telefono || '+593 99 123 4567' }}</p>
+      </div>
+
+      <!-- Bitácora de Observaciones Pedagógicas -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
+          <span>Bitácora de Seguimiento y Observaciones</span>
+          <span class="text-[11px] text-indigo-600 font-semibold">{{ estudianteDetalle.observaciones?.length || 0 }} registros</span>
+        </h4>
+
+        <!-- Agregar nueva observación -->
+        <div class="flex items-center gap-2">
+          <input type="text" [(ngModel)]="nuevaObservacionTexto" (keyup.enter)="agregarObservacion()"
+                 placeholder="Escribe una observación pedagógica o acuerdo de tutoría..."
+                 class="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200" />
+          <button (click)="agregarObservacion()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shrink-0">
+            Añadir
+          </button>
+        </div>
+
+        <!-- Lista de observaciones -->
+        <div class="space-y-2 max-h-48 overflow-y-auto">
+          @for (obs of estudianteDetalle.observaciones; track obs) {
+            <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 flex items-start gap-2">
+              <i class="fa-solid fa-comment-dots text-indigo-600 text-xs mt-0.5 shrink-0"></i>
+              <span class="leading-relaxed">{{ obs }}</span>
+            </div>
+          } @empty {
+            <p class="text-xs text-slate-400 italic py-2 text-center">No hay observaciones registradas aún para este alumno.</p>
+          }
+        </div>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+        <a [href]="'mailto:' + estudianteDetalle.correo" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">
+          <i class="fa-regular fa-envelope"></i> Enviar Correo Institucional
+        </a>
+        <button (click)="cerrarFichaEstudiante()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">
+          Cerrar
         </button>
       </div>
     </div>
+  </div>
+}
 
-    <button (click)="guardarEstudiantes()" [disabled]="isLoading" class="mt-6 py-2.5 px-6 bg-accent hover:bg-accent-dim text-white font-medium rounded-lg transition-colors disabled:opacity-50">
-      {{ isLoading ? 'Guardando...' : 'Guardar Estudiantes' }}
-    </button>
-  </section>
-</div>
+<!-- ========================================================================= -->
+<!-- MODAL: ALERTA PEDAGÓGICA INDIVIDUAL                                       -->
+<!-- ========================================================================= -->
+@if (modalAlertaEstudiante && estudianteAlerta) {
+  <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" (click)="cerrarAlertaEstudiante()">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200 animate-scale-in" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Alerta Temprana de Tutoría</h3>
+            <span class="text-xs text-slate-500">{{ estudianteAlerta.nombre }}</span>
+          </div>
+        </div>
+        <button (click)="cerrarAlertaEstudiante()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-600 leading-relaxed">
+          Se enviará un aviso formal al correo del estudiante <strong>{{ estudianteAlerta.correo }}</strong> y se notificará al ayudante de cátedra para coordinar acompañamiento pedagógico.
+        </p>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mensaje de Orientación y Convocatoria</label>
+          <textarea [(ngModel)]="mensajeAlerta" rows="4" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-200"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button (click)="cerrarAlertaEstudiante()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">
+          Cancelar
+        </button>
+        <button (click)="enviarAlertaPedagogica()" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-paper-plane"></i> Enviar Alerta
+        </button>
+      </div>
+    </div>
+  </div>
+}

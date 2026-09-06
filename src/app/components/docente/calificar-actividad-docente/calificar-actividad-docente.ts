@@ -32,6 +32,15 @@ export class CalificarActividadDocenteComponent implements OnInit {
   mensajeGlobalExito: string = '';
   mensajeGlobalError: string = '';
 
+  get esAyudante(): boolean {
+    const rol = (localStorage.getItem('rol') || '').toLowerCase();
+    return rol.includes('ayudante');
+  }
+
+  get rutaRetorno(): string {
+    return this.esAyudante ? '/ayudante/materias' : '/docente/gestion-clases';
+  }
+
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       const idParam = params.get('actividadId');

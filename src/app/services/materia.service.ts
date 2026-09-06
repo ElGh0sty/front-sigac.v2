@@ -10,6 +10,14 @@ export interface EstudianteMateria {
   correo?: string;
   nota?: number;
   asistencia?: number;
+  matricula?: string;
+  cedula?: string;
+  carrera?: string;
+  estado?: 'Regular' | 'En Riesgo' | 'Destacado' | 'Retirado' | 'Justificado';
+  telefono?: string;
+  observaciones?: string[];
+  tareasEntregadas?: number;
+  totalTareas?: number;
 }
 
 export interface MateriaDto {
@@ -116,6 +124,33 @@ export interface RegistroAsistenciaDto {
   asistentes: AsistenteRegistro[];
 }
 
+const ESTUDIANTES_CALCULO_24: EstudianteMateria[] = [
+  { id: 1, nombre: 'Alejandro García', correo: 'a.garcia@uni.edu', cedula: '1729384011', matricula: '2024-IS-001', carrera: 'Ingeniería de Software', nota: 4.8, asistencia: 94, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Excelente participación en foros y talleres prácticos.', 'Propuesta destacada en el taller de derivadas parciales.'] },
+  { id: 2, nombre: 'María López', correo: 'm.lopez@uni.edu', cedula: '1729384012', matricula: '2024-IS-002', carrera: 'Ingeniería de Software', nota: 4.5, asistencia: 88, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Buen desempeño analítico.', 'Entregó taller #3 con un día de retraso justificado.'] },
+  { id: 3, nombre: 'Carlos Ruiz', correo: 'c.ruiz@uni.edu', cedula: '1729384013', matricula: '2024-IS-003', carrera: 'Ingeniería de Software', nota: 4.9, asistencia: 96, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Líder de grupo en proyectos de aula.', 'Postulado con éxito a ayudantía de docencia.'] },
+  { id: 4, nombre: 'Valentina Soto', correo: 'v.soto@uni.edu', cedula: '1729384014', matricula: '2024-IS-004', carrera: 'Ingeniería de Software', nota: 4.6, asistencia: 92, estado: 'Regular', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Participa constantemente en discusiones de cálculo vectorial.'] },
+  { id: 5, nombre: 'Mateo Fernández', correo: 'm.fernandez@uni.edu', cedula: '1729384015', matricula: '2024-IS-005', carrera: 'Ingeniería de Software', nota: 4.2, asistencia: 85, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Rendimiento constante en pruebas cortas.'] },
+  { id: 6, nombre: 'Sofía Castro', correo: 's.castro@uni.edu', cedula: '1729384016', matricula: '2024-IS-006', carrera: 'Ingeniería de Software', nota: 4.7, asistencia: 90, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Excelente entrega de laboratorios en GeoGebra.'] },
+  { id: 7, nombre: 'Lucas Morales', correo: 'l.morales@uni.edu', cedula: '1729384017', matricula: '2024-IS-007', carrera: 'Ingeniería de Software', nota: 3.6, asistencia: 72, estado: 'En Riesgo', tareasEntregadas: 3, totalTareas: 6, observaciones: ['Alerta Temprana: Registro de 3 inasistencias no justificadas.', 'Se citó a tutoría académica con el ayudante.'] },
+  { id: 8, nombre: 'Isabella Ortiz', correo: 'i.ortiz@uni.edu', cedula: '1729384018', matricula: '2024-IS-008', carrera: 'Ingeniería de Software', nota: 5.0, asistencia: 100, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Nota perfecta y 100% de asistencia.', 'Puntaje máximo en examen parcial.'] },
+  { id: 9, nombre: 'Gabriel Ramos', correo: 'g.ramos@uni.edu', cedula: '1729384019', matricula: '2024-IS-009', carrera: 'Ingeniería de Software', nota: 4.1, asistencia: 84, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Mejoró notablemente en el módulo de integrales triples.'] },
+  { id: 10, nombre: 'Camila Vargas', correo: 'c.vargas@uni.edu', cedula: '1729384020', matricula: '2024-IS-010', carrera: 'Ingeniería de Software', nota: 4.4, asistencia: 89, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Colabora activamente en mesas redondas de resolución de dudas.'] },
+  { id: 11, nombre: 'Daniel Silva', correo: 'd.silva@uni.edu', cedula: '1729384021', matricula: '2024-IS-011', carrera: 'Ingeniería de Software', nota: 4.3, asistencia: 86, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Buen manejo de algoritmos de aproximación numérica.'] },
+  { id: 12, nombre: 'Valeria Herrera', correo: 'v.herrera@uni.edu', cedula: '1729384022', matricula: '2024-IS-012', carrera: 'Ingeniería de Software', nota: 4.8, asistencia: 95, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Dominio notable de teoremas de Green y Stokes.'] },
+  { id: 13, nombre: 'Sebastián Mendoza', correo: 's.mendoza@uni.edu', cedula: '1729384023', matricula: '2024-IS-013', carrera: 'Ingeniería de Software', nota: 4.0, asistencia: 82, estado: 'Regular', tareasEntregadas: 4, totalTareas: 6, observaciones: ['Debe reforzar temas de convergencia de series.'] },
+  { id: 14, nombre: 'Lucía Guerrero', correo: 'l.guerrero@uni.edu', cedula: '1729384024', matricula: '2024-IS-014', carrera: 'Ingeniería de Software', nota: 4.6, asistencia: 91, estado: 'Regular', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Puntual y con alto compromiso en entrega de tareas.'] },
+  { id: 15, nombre: 'Diego Navarro', correo: 'd.navarro@uni.edu', cedula: '1729384025', matricula: '2024-IS-015', carrera: 'Ingeniería de Software', nota: 3.4, asistencia: 68, estado: 'En Riesgo', tareasEntregadas: 2, totalTareas: 6, observaciones: ['Alerta Académica: Asistencia por debajo del 70%. Riesgo de pérdida por inasistencia.', 'Pendiente reunión de asesoría docente.'] },
+  { id: 16, nombre: 'Mariana Paredes', correo: 'm.paredes@uni.edu', cedula: '1729384026', matricula: '2024-IS-016', carrera: 'Ingeniería de Software', nota: 4.7, asistencia: 93, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Participa con frecuencia aclarando dudas a sus compañeros.'] },
+  { id: 17, nombre: 'Javier Romero', correo: 'j.romero@uni.edu', cedula: '1729384027', matricula: '2024-IS-017', carrera: 'Ingeniería de Software', nota: 4.5, asistencia: 88, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Cumple con todos los estándares del sílabo.'] },
+  { id: 18, nombre: 'Andrea Medina', correo: 'a.medina@uni.edu', cedula: '1729384028', matricula: '2024-IS-018', carrera: 'Ingeniería de Software', nota: 4.9, asistencia: 97, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Excelente redacción técnica en informes de laboratorio.'] },
+  { id: 19, nombre: 'Nicolás Benítez', correo: 'n.benitez@uni.edu', cedula: '1729384029', matricula: '2024-IS-019', carrera: 'Ingeniería de Software', nota: 4.2, asistencia: 85, estado: 'Regular', tareasEntregadas: 5, totalTareas: 6, observaciones: ['Buen desenvolvimiento en trabajo en parejas.'] },
+  { id: 20, nombre: 'Paula Rivas', correo: 'p.rivas@uni.edu', cedula: '1729384030', matricula: '2024-IS-020', carrera: 'Ingeniería de Software', nota: 4.6, asistencia: 92, estado: 'Regular', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Activa en el uso de los recursos digitales de la plataforma.'] },
+  { id: 21, nombre: 'Fernando Delgado', correo: 'f.delgado@uni.edu', cedula: '1729384031', matricula: '2024-IS-021', carrera: 'Ingeniería de Software', nota: 3.5, asistencia: 74, estado: 'En Riesgo', tareasEntregadas: 3, totalTareas: 6, observaciones: ['Alerta Temprana: Nota acumulada baja en talleres prácticos.', 'Se solicitó plan de recuperación académica.'] },
+  { id: 22, nombre: 'Daniela Cruz', correo: 'd.cruz@uni.edu', cedula: '1729384032', matricula: '2024-IS-022', carrera: 'Ingeniería de Software', nota: 4.8, asistencia: 94, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Capacidad analítica sobresaliente en exámenes sorpresa.'] },
+  { id: 23, nombre: 'Esteban Peña', correo: 'e.pena@uni.edu', cedula: '1729384033', matricula: '2024-IS-023', carrera: 'Ingeniería de Software', nota: 4.0, asistencia: 81, estado: 'Regular', tareasEntregadas: 4, totalTareas: 6, observaciones: ['Se reincorporó tras justificación de salud debidamente validada.'] },
+  { id: 24, nombre: 'Natalia Salazar', correo: 'n.salazar@uni.edu', cedula: '1729384034', matricula: '2024-IS-024', carrera: 'Ingeniería de Software', nota: 4.7, asistencia: 90, estado: 'Destacado', tareasEntregadas: 6, totalTareas: 6, observaciones: ['Compromiso sobresaliente en la resolución de problemas en pizarra.'] }
+];
+
 const MATERIAS_DEFAULT: MateriaDto[] = [
   {
     id: 101,
@@ -132,10 +167,7 @@ const MATERIAS_DEFAULT: MateriaDto[] = [
     semestre: '2026-2',
     grupo: 'Grupo A (Diurno)',
     ayudantes: ['Ana López', 'Carlos Ruiz'],
-    estudiantes: [
-      { id: 1, nombre: 'Alejandro García', correo: 'a.garcia@uni.edu', nota: 4.8, asistencia: 94 },
-      { id: 2, nombre: 'María López', correo: 'm.lopez@uni.edu', nota: 4.5, asistencia: 88 }
-    ]
+    estudiantes: ESTUDIANTES_CALCULO_24
   },
   {
     id: 102,
@@ -152,9 +184,11 @@ const MATERIAS_DEFAULT: MateriaDto[] = [
     semestre: '2026-1',
     grupo: 'Grupo Teórico',
     ayudantes: ['Sebastián Gómez'],
-    estudiantes: [
-      { id: 3, nombre: 'Carlos Ruiz', correo: 'c.ruiz@uni.edu', nota: 4.9, asistencia: 97 }
-    ]
+    estudiantes: ESTUDIANTES_CALCULO_24.slice(0, 18).map(e => ({
+      ...e,
+      carrera: 'Ciencias Físicas e Ingeniería',
+      matricula: e.matricula?.replace('IS', 'FIS')
+    }))
   },
   {
     id: 103,
@@ -171,10 +205,11 @@ const MATERIAS_DEFAULT: MateriaDto[] = [
     semestre: '2026-2',
     grupo: 'Laboratorio Avanzado',
     ayudantes: ['Elena Torres'],
-    estudiantes: [
-      { id: 1, nombre: 'Alejandro García', correo: 'a.garcia@uni.edu', nota: 4.9, asistencia: 98 },
-      { id: 4, nombre: 'Valentina Soto', correo: 'v.soto@uni.edu', nota: 4.7, asistencia: 92 }
-    ]
+    estudiantes: ESTUDIANTES_CALCULO_24.slice(0, 20).map(e => ({
+      ...e,
+      carrera: 'Inteligencia Artificial y Computación',
+      matricula: e.matricula?.replace('IS', 'IA')
+    }))
   }
 ];
 
@@ -292,22 +327,24 @@ const ASISTENCIAS_DEFAULT: RegistroAsistenciaDto[] = [
     materiaId: 101,
     fecha: '2026-08-25',
     tema: 'Derivadas Parciales y Regla de la Cadena',
-    asistentes: [
-      { id: 1, nombre: 'Alejandro García', email: 'a.garcia@uni.edu', presente: true },
-      { id: 2, nombre: 'María López', email: 'm.lopez@uni.edu', presente: true },
-      { id: 3, nombre: 'Carlos Ruiz', email: 'c.ruiz@uni.edu', presente: false }
-    ]
+    asistentes: ESTUDIANTES_CALCULO_24.map((e, idx) => ({
+      id: e.id,
+      nombre: e.nombre,
+      email: e.correo || 'estudiante@uni.edu',
+      presente: idx !== 2 && idx !== 6 // 22 presentes, 2 ausentes
+    }))
   },
   {
     id: 2,
     materiaId: 101,
     fecha: '2026-08-18',
     tema: 'Introducción al Cálculo Multivariable',
-    asistentes: [
-      { id: 1, nombre: 'Alejandro García', email: 'a.garcia@uni.edu', presente: true },
-      { id: 2, nombre: 'María López', email: 'm.lopez@uni.edu', presente: false },
-      { id: 3, nombre: 'Carlos Ruiz', email: 'c.ruiz@uni.edu', presente: true }
-    ]
+    asistentes: ESTUDIANTES_CALCULO_24.map((e, idx) => ({
+      id: e.id,
+      nombre: e.nombre,
+      email: e.correo || 'estudiante@uni.edu',
+      presente: idx !== 1 && idx !== 14 // 22 presentes, 2 ausentes
+    }))
   }
 ];
 
@@ -391,6 +428,10 @@ export class MateriaService {
 
   getMateriasSnapshot(): MateriaDto[] {
     return this.materiasSubject.value;
+  }
+
+  getAsistenciasSnapshot(): RegistroAsistenciaDto[] {
+    return this.asistenciasSubject.value;
   }
 
   getMateriaById(id: number): MateriaDto | undefined {
@@ -806,11 +847,14 @@ export class MateriaService {
     this.saveStorage(this.STORAGE_ASISTENCIAS, list);
   }
 
-  getRecursosSnapshot(): RecursoDto[] {
+  getRecursosSnapshot(materiaId?: number): RecursoDto[] {
+    if (materiaId !== undefined) {
+      return this.recursosSubject.value.filter(r => Number(r.materiaId) === Number(materiaId));
+    }
     return this.recursosSubject.value;
   }
 
-  // ==================== ASIGNACIÓN DE ESTUDIANTES ====================
+  // ==================== ASIGNACIÓN Y GESTIÓN INTEGRAL DE ESTUDIANTES ====================
 
   agregarEstudiantesAMateria(materiaId: number, estudiantes: ({ id: number; nombre?: string; correo?: string } | number)[]): Observable<any> {
     const materias = this.materiasSubject.value.map(m => {
@@ -826,8 +870,15 @@ export class MateriaService {
               id: id,
               nombre: nombre,
               correo: correo,
+              cedula: `17${Math.floor(10000000 + Math.random() * 90000000)}`,
+              matricula: `2024-MAT-${String(id).slice(-3)}`,
+              carrera: 'Ingeniería de Software',
               nota: 4.5,
-              asistencia: 100
+              asistencia: 100,
+              estado: 'Regular',
+              tareasEntregadas: 5,
+              totalTareas: 6,
+              observaciones: ['Matriculado oficialmente en la cátedra.']
             });
           }
         });
@@ -843,5 +894,80 @@ export class MateriaService {
     return this.http.post(`${this.apiUrl}/${materiaId}/estudiantes`, { estudianteIds }).pipe(
       catchError(() => of({ success: true }))
     );
+  }
+
+  agregarEstudianteDirecto(materiaId: number, estudiante: Partial<EstudianteMateria>): void {
+    const materias = this.materiasSubject.value.map(m => {
+      if (Number(m.id) === Number(materiaId)) {
+        const list = m.estudiantes || [];
+        const nuevoId = estudiante.id || Date.now();
+        const nuevo: EstudianteMateria = {
+          id: nuevoId,
+          nombre: estudiante.nombre || 'Nuevo Estudiante',
+          correo: estudiante.correo || `estudiante_${nuevoId}@uni.edu`,
+          cedula: estudiante.cedula || `17${Math.floor(10000000 + Math.random() * 90000000)}`,
+          matricula: estudiante.matricula || `2024-ALUM-${String(nuevoId).slice(-4)}`,
+          carrera: estudiante.carrera || 'Ingeniería de Software',
+          nota: estudiante.nota !== undefined ? estudiante.nota : 4.2,
+          asistencia: estudiante.asistencia !== undefined ? estudiante.asistencia : 90,
+          estado: estudiante.estado || 'Regular',
+          telefono: estudiante.telefono || '+593 99 123 4567',
+          tareasEntregadas: estudiante.tareasEntregadas || 5,
+          totalTareas: 6,
+          observaciones: estudiante.observaciones || ['Incorporado al aula por el docente responsable.']
+        };
+        return { ...m, estudiantes: [nuevo, ...list] };
+      }
+      return m;
+    });
+    this.materiasSubject.next(materias);
+    this.saveStorage(this.STORAGE_MATERIAS, materias);
+  }
+
+  actualizarEstudianteEnMateria(materiaId: number, estudianteActualizado: EstudianteMateria): void {
+    const materias = this.materiasSubject.value.map(m => {
+      if (Number(m.id) === Number(materiaId)) {
+        const list = (m.estudiantes || []).map(e =>
+          Number(e.id) === Number(estudianteActualizado.id) ? { ...e, ...estudianteActualizado } : e
+        );
+        return { ...m, estudiantes: list };
+      }
+      return m;
+    });
+    this.materiasSubject.next(materias);
+    this.saveStorage(this.STORAGE_MATERIAS, materias);
+  }
+
+  eliminarEstudianteDeMateria(materiaId: number, estudianteId: number): void {
+    const materias = this.materiasSubject.value.map(m => {
+      if (Number(m.id) === Number(materiaId)) {
+        const list = (m.estudiantes || []).filter(e => Number(e.id) !== Number(estudianteId));
+        return { ...m, estudiantes: list };
+      }
+      return m;
+    });
+    this.materiasSubject.next(materias);
+    this.saveStorage(this.STORAGE_MATERIAS, materias);
+  }
+
+  agregarObservacionEstudiante(materiaId: number, estudianteId: number, observacion: string): void {
+    if (!observacion?.trim()) return;
+    const materias = this.materiasSubject.value.map(m => {
+      if (Number(m.id) === Number(materiaId)) {
+        const list = (m.estudiantes || []).map(e => {
+          if (Number(e.id) === Number(estudianteId)) {
+            const obs = e.observaciones ? [...e.observaciones] : [];
+            const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+            obs.unshift(`[${fecha}] ${observacion.trim()}`);
+            return { ...e, observaciones: obs };
+          }
+          return e;
+        });
+        return { ...m, estudiantes: list };
+      }
+      return m;
+    });
+    this.materiasSubject.next(materias);
+    this.saveStorage(this.STORAGE_MATERIAS, materias);
   }
 }
