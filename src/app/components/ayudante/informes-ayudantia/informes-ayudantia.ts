@@ -239,4 +239,58 @@ export class InformesAyudantiaComponent implements OnInit {
       }
     });
   }
+
+  descargarInformePdf(inf: RegistroInformeAyudantia): void {
+    const listaAnexos = inf.anexos && inf.anexos.length > 0
+      ? inf.anexos.map((a, i) => `  ${i + 1}. [${a.tipo === 'documento_firmado' ? 'DOCUMENTO FIRMADO' : 'CAPTURA VIDEOLLAMADA'}] ${a.nombre} (${a.tamanoKb} KB) - Registrado: ${a.fechaCarga}`).join('\n')
+      : '  (Sin anexos adjuntos)';
+
+    const contenido = `================================================================================
+UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO (UTEQ)
+FACULTAD DE CIENCIAS DE LA COMPUTACIÓN
+CARRERA DE INGENIERÍA DE SOFTWARE
+SISTEMA INTEGRAL DE GESTIÓN ACADÉMICA PARA CÁTEDRAS (SIGAC)
+================================================================================
+INFORME DE CUMPLIMIENTO DE ACTIVIDADES DE AYUDANTÍA DE CÁTEDRA
+Cumplimiento normativo institucional (RF-009)
+
+1. DATOS INFORMATIVOS
+--------------------------------------------------------------------------------
+- Resolución de Designación:  ${inf.numeroResolucion}
+- Tipo de Informe:            ${inf.tipoInforme}
+- Periodo Académico:          ${inf.periodo}
+- Cátedra Asignada:           ${inf.catedraNombre}
+- Modalidad de Ejecución:     ${inf.modalidad}
+- Horas Impartidas:           ${inf.horasTotales} horas reloj
+- Frecuencia Semanal:         ${inf.diasPorSemana} días por semana
+- Estado del Informe:         ${inf.estado}
+- Fecha de Generación:        ${inf.fechaCreacion}
+
+2. DESCRIPCIÓN DE ACTIVIDADES Y CONTENIDOS IMPARTIDOS
+--------------------------------------------------------------------------------
+${inf.temasImpartidos}
+
+3. EVIDENCIAS Y COMPROBANTES PROBATORIOS CARGADOS
+--------------------------------------------------------------------------------
+${listaAnexos}
+
+================================================================================
+CERTIFICACIÓN Y FIRMAS DE RESPONSABILIDAD:
+El presente documento certifica la veracidad de las actividades académicas
+de refuerzo y apoyo pedagógico ejecutadas conforme a la planificación aprobada.
+
+_____________________________               _____________________________
+     AYUDANTE DE CÁTEDRA                         DOCENTE RESPONSABLE
+      Firma Digital SIGAC                         Revisión y Aprobación
+================================================================================`;
+
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `INFORME_AYUDANTIA_${inf.numeroResolucion.replace(/[\/\s]/g, '_')}_${inf.periodo.replace(/[\/\s]/g, '_')}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    this.mensajeExito = `Descargando copia del informe de ayudantía "${inf.numeroResolucion}"...`;
+  }
 }

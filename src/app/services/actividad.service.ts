@@ -246,22 +246,33 @@ export class ActividadService {
    * Asigna nota nominal y retroalimentación personalizada a cada estudiante
    */
   calificarEntregaIndividual(body: { estudianteId: number; actividadId: number; calificacion: number; retroalimentacion: string }): Observable<any> {
-    return this.http.post(`${this.baseUrl}/api/docente/actividades/calificar`, body).pipe(
+    const lista = this.entregasMock[body.actividadId] || this.entregasMock[1];
+    const item = lista ? lista.find(e => e.estudianteId === body.estudianteId) : null;
+    const entregaId = item ? item.id : 101;
+
+    const payload = {
+      EntregaId: entregaId,
+      entregaId: entregaId,
+      Calificacion: Number(body.calificacion),
+      calificacion: Number(body.calificacion),
+      Retroalimentacion: body.retroalimentacion || '',
+      retroalimentacion: body.retroalimentacion || '',
+      estudianteId: body.estudianteId,
+      actividadId: body.actividadId
+    };
+
+    return this.http.post(`${this.baseUrl}/api/docente/actividades/calificar`, payload).pipe(
       catchError(() => {
-        const lista = this.entregasMock[body.actividadId] || this.entregasMock[1];
-        if (lista) {
-          const item = lista.find(e => e.estudianteId === body.estudianteId);
-          if (item) {
-            item.estado = 'Calificado';
-            item.calificacion = body.calificacion;
-            item.retroalimentacion = body.retroalimentacion;
-            item.fechaCalificacion = new Date().toISOString();
-          }
+        if (item) {
+          item.estado = 'Calificado';
+          item.calificacion = body.calificacion;
+          item.retroalimentacion = body.retroalimentacion;
+          item.fechaCalificacion = new Date().toISOString();
         }
         return of({
           success: true,
           mensaje: 'Calificación nominal y retroalimentación registradas exitosamente.',
-          body
+          body: payload
         });
       })
     );

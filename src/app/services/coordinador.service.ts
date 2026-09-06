@@ -79,7 +79,11 @@ export class CoordinadorService {
 
   asignarAyudante(dto: AsignacionAyudantiaDto): Observable<any> {
     this.estudianteService.actualizarEstadoPostulacion(dto.ayudantiaId, 'Asignada');
-    return this.http.post(`${this.apiUrl}/ayudantias/asignar`, dto).pipe(
+    const payload = {
+      AyudantiaId: Number(dto.ayudantiaId),
+      ayudantiaId: Number(dto.ayudantiaId)
+    };
+    return this.http.post(`${this.apiUrl}/ayudantias/asignar`, payload).pipe(
       catchError(() => of({ success: true }))
     );
   }
@@ -90,7 +94,11 @@ export class CoordinadorService {
 
   gestionarEstadoAyudantia(ayudantiaId: number, dto: GestionEstadoAyudantiaDto): Observable<any> {
     this.estudianteService.actualizarEstadoPostulacion(ayudantiaId, dto.nuevoEstado);
-    return this.http.put(`${this.apiUrl}/ayudantias/${ayudantiaId}/estado`, dto).pipe(
+    const payload = {
+      NuevoEstado: dto.nuevoEstado,
+      nuevoEstado: dto.nuevoEstado
+    };
+    return this.http.put(`${this.apiUrl}/ayudantias/${ayudantiaId}/estado`, payload).pipe(
       catchError(() => of({ success: true }))
     );
   }
@@ -113,6 +121,7 @@ export class CoordinadorService {
    */
   actualizarMinimoNota(catedraId: number, minimoNota: number): Observable<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }> {
     const payload = {
+      MinimoNota: Number(minimoNota),
       minimoNota: Number(minimoNota)
     };
     return this.http.put<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }>(

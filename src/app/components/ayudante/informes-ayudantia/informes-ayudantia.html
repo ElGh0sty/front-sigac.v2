@@ -276,7 +276,8 @@
         <div class="text-right shrink-0 flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+            (click)="descargarInformePdf(inf)"
+            class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <i class="fa-solid fa-file-arrow-down text-accent"></i> Descargar PDF
           </button>

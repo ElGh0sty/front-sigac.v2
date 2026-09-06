@@ -1,6 +1,6 @@
 {
-  "name": "SIGAC",
-  "description": "Sistema de Gestión Académica y Control (SIGAC) - Plataforma para administración de materias, clases, ayudantías, seguimiento y reportes.",
+  "name": "SIGAC - UTEQ",
+  "description": "Sistema Integral de Gestión Académica para Cátedras (SIGAC) de la Universidad Técnica Estatal de Quevedo (UTEQ) - Facultad de Ciencias de la Computación, Carrera de Ingeniería de Software. Plataforma web para seguimiento estudiantil, gestión de cátedras, ayudantías y clases de refuerzo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

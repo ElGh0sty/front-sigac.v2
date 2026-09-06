@@ -143,7 +143,12 @@ export class EstudianteService {
     this.historialSubject.next(updated);
     this.saveStorage(this.STORAGE_POSTULACIONES, updated);
 
-    return this.http.post(`${this.apiUrl}/ayudantias/postulaciones`, dto).pipe(
+    const payload = {
+      CatedraId: Number(dto.catedraId),
+      catedraId: Number(dto.catedraId)
+    };
+
+    return this.http.post(`${this.apiUrl}/ayudantias/postulaciones`, payload).pipe(
       catchError(() => of({ success: true, postulacion: nuevaPostulacion }))
     );
   }
@@ -167,7 +172,16 @@ export class EstudianteService {
     this.bitacorasSubject.next(updated);
     this.saveStorage(this.STORAGE_BITACORAS, updated);
 
-    return this.http.post(`${this.apiUrl}/ayudantias/bitacora`, dto).pipe(
+    const payload = {
+      AyudantiaId: Number(dto.ayudantiaId),
+      ayudantiaId: Number(dto.ayudantiaId),
+      ActividadesRealizadas: dto.actividadesRealizadas,
+      actividadesRealizadas: dto.actividadesRealizadas,
+      EvidenciaUrl: dto.evidenciaUrl || '',
+      evidenciaUrl: dto.evidenciaUrl || ''
+    };
+
+    return this.http.post(`${this.apiUrl}/ayudantias/bitacora`, payload).pipe(
       catchError(() => of({ success: true, bitacora: nuevaBitacora }))
     );
   }
@@ -177,7 +191,15 @@ export class EstudianteService {
   }
 
   generarInformeMensual(request: InformeMensualRequestDto): Observable<any> {
-    return this.http.post(`${this.apiUrl}/ayudantias/informe-mensual`, request).pipe(
+    const payload = {
+      AyudantiaId: Number(request.ayudantiaId),
+      ayudantiaId: Number(request.ayudantiaId),
+      Mes: Number(request.mes),
+      mes: Number(request.mes),
+      Anio: Number(request.anio),
+      anio: Number(request.anio)
+    };
+    return this.http.post(`${this.apiUrl}/ayudantias/informe-mensual`, payload).pipe(
       catchError(() => of({ success: true, mensaje: 'Informe generado exitosamente.' }))
     );
   }
