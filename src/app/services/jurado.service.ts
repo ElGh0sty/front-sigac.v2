@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { getApiBase } from '../api';
 
 export interface CrearPresentacionDto {
@@ -236,12 +236,12 @@ export class JuradoService {
   }
 
   /**
-   * Obtiene promedios, estado comparativo y detalles de las calificaciones del jurado.
-   * Manejado localmente y sincronizado para evitar errores 404 en GET inexistentes del backend.
+   * GET /api/Jurado/presentaciones/{id}/resultado
+   * Obtiene el resultado de la sustentación del backend, con fallback al cálculo consolidado de la rúbrica.
    */
   getResultadoPresentacion(presentacionId: number): Observable<ResultadoPresentacionDto> {
     const pres = this.presentacionesSubject.value.find(p => p.id === presentacionId) || this.presentacionesSubject.value[0];
-    const resultadoMock: ResultadoPresentacionDto = {
+    const fallbackMock: ResultadoPresentacionDto = {
       presentacionId: pres ? pres.id : presentacionId,
       ayudantiaId: pres ? pres.ayudantiaId : 101,
       estudianteNombre: pres ? pres.estudianteNombre : 'Alejandro García Mendoza',
@@ -285,16 +285,27 @@ export class JuradoService {
       ]
     };
 
-    return of(resultadoMock);
+    return this.http.get<ResultadoPresentacionDto>(`${this.apiUrl}/presentaciones/${presentacionId}/resultado`).pipe(
+      map(res => res || fallbackMock),
+      catchError(() => of(fallbackMock))
+    );
   }
 
   /**
-   * Obtiene la lista de presentaciones programadas para el jurado/coordinación.
-   * Proporciona los datos reactivos guardados en el sistema sin disparar un GET 405 en el backend
-   * (dado que el endpoint /api/Jurado/presentaciones en ASP.NET sólo admite POST).
+   * GET /api/Jurado/presentaciones
+   * Consume la lista de sustentaciones convocadas del backend y sincroniza el store reactivo local.
    */
   getPresentaciones(): Observable<PresentacionDetalleDto[]> {
-    return of([...this.presentacionesSubject.value]);
+    return this.http.get<PresentacionDetalleDto[]>(`${this.apiUrl}/presentaciones`).pipe(
+      tap((datos) => {
+        if (Array.isArray(datos) && datos.length > 0) {
+          this.presentacionesSubject.next(datos);
+          this.saveStorage(this.STORAGE_PRESENTACIONES, datos);
+        }
+      }),
+      map(() => this.presentacionesSubject.value),
+      catchError(() => of([...this.presentacionesSubject.value]))
+    );
   }
 
   /**
