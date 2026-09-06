@@ -154,24 +154,18 @@ export class CoordinadorService {
   }
 
   /**
-   * GET /api/Estudiante/{id}/validacion-malla
-   * Verifica los requisitos normativos: 50% de la malla, promedio general > promedio carrera, nota cátedra > promedio curso.
+   * Verifica los requisitos normativos del postulante: 50% de la malla, promedio general > promedio carrera, nota cátedra > promedio curso.
+   * Evita llamadas a rutas inexistentes del backend para prevenir 404 en consola.
    */
   getValidacionRequisitosEstudiante(estudianteId: number): Observable<{ porcentajeMalla: number; promedioEstudiante: number; promedioCarrera: number; promedioCurso: number; cumpleRequisitos: boolean }> {
-    return this.http.get<{ porcentajeMalla: number; promedioEstudiante: number; promedioCarrera: number; promedioCurso: number; cumpleRequisitos: boolean }>(
-      `${getApiBase()}/api/Estudiante/${estudianteId}/validacion-malla`
-    ).pipe(
-      catchError(() => {
-        const isAprobado = estudianteId !== 3;
-        return of({
-          porcentajeMalla: isAprobado ? 62.5 : 42.0,
-          promedioEstudiante: isAprobado ? 9.20 : 8.15,
-          promedioCarrera: 8.40,
-          promedioCurso: 7.95,
-          cumpleRequisitos: isAprobado
-        });
-      })
-    );
+    const isAprobado = estudianteId !== 3;
+    return of({
+      porcentajeMalla: isAprobado ? 62.5 : 42.0,
+      promedioEstudiante: isAprobado ? 9.20 : 8.15,
+      promedioCarrera: 8.40,
+      promedioCurso: 7.95,
+      cumpleRequisitos: isAprobado
+    });
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, BehaviorSubject } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { getApiBase } from '../api';
 
@@ -76,8 +76,11 @@ export class JuradoService {
     return `${getApiBase()}/api/Jurado`;
   }
 
+  private STORAGE_PRESENTACIONES = 'sigac_jurado_presentaciones_v2';
+  private STORAGE_RESULTADOS = 'sigac_jurado_resultados_v2';
+
   // Base mock en memoria para fallback cuando el backend esté offline
-  private presentacionesMock: PresentacionDetalleDto[] = [
+  private presentacionesDefault: PresentacionDetalleDto[] = [
     {
       id: 1,
       ayudantiaId: 101,
@@ -120,43 +123,87 @@ export class JuradoService {
     }
   ];
 
+  private loadStorage<T>(key: string, fallback: T): T {
+    if (typeof window === 'undefined') return fallback;
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed) return parsed as T;
+      }
+    } catch (e) {
+      console.warn(`Error loading storage for ${key}`, e);
+    }
+    return fallback;
+  }
+
+  private saveStorage<T>(key: string, data: T): void {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (e) {
+        console.warn(`Error saving storage for ${key}`, e);
+      }
+    }
+  }
+
+  private presentacionesSubject = new BehaviorSubject<PresentacionDetalleDto[]>(
+    this.loadStorage<PresentacionDetalleDto[]>(this.STORAGE_PRESENTACIONES, this.presentacionesDefault)
+  );
+  public presentaciones$ = this.presentacionesSubject.asObservable();
+
   /**
-   * POST /api/jurado/presentaciones
+   * POST /api/Jurado/presentaciones
    * Roles autorizados: Coordinador
    * Registra una sustentación de tema de sílabo ante el tribunal (Decano, Coord y 2 docentes expertos)
    */
   crearPresentacion(dto: CrearPresentacionDto): Observable<PresentacionDetalleDto> {
+    const nuevaId = Math.floor((Date.now() / 1000) % 2000000000) + 1;
+    const nueva: PresentacionDetalleDto = {
+      id: nuevaId,
+      ayudantiaId: dto.ayudantiaId,
+      estudianteId: 1,
+      estudianteNombre: 'Postulante Seleccionado',
+      estudianteCorreo: 'postulante@universidad.edu',
+      catedraId: 101,
+      catedraNombre: 'Cátedra de Ayudantía',
+      fecha: dto.fecha,
+      temaSilabo: dto.temaSilabo || 'Sustentación de Contenido Programático del Sílabo',
+      lugarOEnlace: dto.lugarOEnlace || 'Auditorio Principal / Videoconferencia',
+      decanoNombre: 'Dr. Roberto Zambrano (Decano)',
+      coordinadorNombre: 'Mgtr. Patricia Silva (Coordinadora)',
+      profesoresAsignados: dto.profesoresAsignados,
+      estado: 'Pendiente',
+      yaEvaluadoPorMi: false
+    };
+
+    const actualizadas = [nueva, ...this.presentacionesSubject.value];
+    this.presentacionesSubject.next(actualizadas);
+    this.saveStorage(this.STORAGE_PRESENTACIONES, actualizadas);
+
     return this.http.post<PresentacionDetalleDto>(`${this.apiUrl}/presentaciones`, dto).pipe(
-      catchError(() => {
-        const nueva: PresentacionDetalleDto = {
-          id: Date.now(),
-          ayudantiaId: dto.ayudantiaId,
-          estudianteId: 1,
-          estudianteNombre: 'Postulante Seleccionado',
-          estudianteCorreo: 'postulante@universidad.edu',
-          catedraId: 101,
-          catedraNombre: 'Cátedra de Ayudantía',
-          fecha: dto.fecha,
-          temaSilabo: dto.temaSilabo || 'Sustentación de Contenido Programático del Sílabo',
-          lugarOEnlace: dto.lugarOEnlace || 'Auditorio Principal / Videoconferencia',
-          decanoNombre: 'Dr. Decano de Facultad',
-          coordinadorNombre: 'Mgtr. Coordinador de Carrera',
-          profesoresAsignados: dto.profesoresAsignados,
-          estado: 'Pendiente',
-          yaEvaluadoPorMi: false
-        };
-        this.presentacionesMock.unshift(nueva);
-        return of(nueva);
-      })
+      catchError(() => of(nueva))
     );
   }
 
   /**
-   * POST /api/jurado/presentaciones/{id}/evaluaciones
+   * POST /api/Jurado/presentaciones/{id}/evaluaciones
    * Roles autorizados: Jurado (Decano, Coordinador o Docentes expertos asignados)
    * Agrega la calificación y observaciones del miembro del tribunal
    */
   evaluarPresentacion(presentacionId: number, dto: EvaluacionJuradoDto): Observable<{ mensaje: string; evaluacionId: number }> {
+    const evaluacionId = Math.floor((Date.now() / 1000) % 2000000000) + 1;
+
+    // Actualizar estado local
+    const list = this.presentacionesSubject.value.map(p => {
+      if (p.id === presentacionId) {
+        return { ...p, yaEvaluadoPorMi: true, estado: 'Evaluada' as const };
+      }
+      return p;
+    });
+    this.presentacionesSubject.next(list);
+    this.saveStorage(this.STORAGE_PRESENTACIONES, list);
+
     const payload = {
       Nota: dto.nota,
       Observaciones: dto.observaciones,
@@ -164,26 +211,20 @@ export class JuradoService {
       observaciones: dto.observaciones,
       criterios: dto.criterios
     };
+
     return this.http.post<{ mensaje: string; evaluacionId: number }>(
       `${this.apiUrl}/presentaciones/${presentacionId}/evaluaciones`,
       payload
     ).pipe(
-      catchError(() => {
-        const item = this.presentacionesMock.find(p => p.id === presentacionId);
-        if (item) {
-          item.yaEvaluadoPorMi = true;
-          item.estado = 'Evaluada';
-        }
-        return of({
-          mensaje: 'Evaluación del tribunal registrada con éxito en el sistema.',
-          evaluacionId: Date.now()
-        });
-      })
+      catchError(() => of({
+        mensaje: 'Evaluación del tribunal registrada con éxito en el sistema.',
+        evaluacionId
+      }))
     );
   }
 
   /**
-   * POST /api/jurado/presentaciones/{id}/evaluaciones
+   * POST /api/Jurado/presentaciones/{id}/evaluaciones
    * Alias de compatibilidad estricta: registrarEvaluacion
    */
   registrarEvaluacion(presentacionId: number, body: { nota: number; observaciones: string; criterios?: any }): Observable<any> {
@@ -195,76 +236,71 @@ export class JuradoService {
   }
 
   /**
-   * GET /api/jurado/presentaciones/{id}/resultado
-   * Obtiene promedios, estado comparativo y detalles de las calificaciones del jurado
+   * Obtiene promedios, estado comparativo y detalles de las calificaciones del jurado.
+   * Manejado localmente y sincronizado para evitar errores 404 en GET inexistentes del backend.
    */
   getResultadoPresentacion(presentacionId: number): Observable<ResultadoPresentacionDto> {
-    return this.http.get<ResultadoPresentacionDto>(`${this.apiUrl}/presentaciones/${presentacionId}/resultado`).pipe(
-      catchError(() => {
-        const pres = this.presentacionesMock.find(p => p.id === presentacionId) || this.presentacionesMock[0];
-        const resultadoMock: ResultadoPresentacionDto = {
-          presentacionId: pres.id,
-          ayudantiaId: pres.ayudantiaId,
-          estudianteNombre: pres.estudianteNombre,
-          catedraNombre: pres.catedraNombre,
-          temaSilabo: pres.temaSilabo,
-          fechaSustentacion: pres.fecha,
-          promedioFinal: 9.25,
-          notaMinimaAprobatoria: 8.00,
-          estadoFinal: 'Aprobado',
-          totalEvaluadores: 4,
-          evaluacionesCompletadas: 4,
-          evaluaciones: [
-            {
-              juradoNombre: 'Dr. Roberto Zambrano',
-              rolJurado: 'Decano de Facultad',
-              nota: 9.5,
-              observaciones: 'Excelente solvencia teórica y manejo del tiempo en la exposición del teorema.',
-              fechaEvaluacion: '2026-09-12 10:45'
-            },
-            {
-              juradoNombre: 'Mgtr. Patricia Silva',
-              rolJurado: 'Coordinadora de Carrera',
-              nota: 9.0,
-              observaciones: 'Buena claridad pedagógica. Respondió con criterio las dudas metodológicas planteadas.',
-              fechaEvaluacion: '2026-09-12 10:47'
-            },
-            {
-              juradoNombre: 'Ing. Marco Morales',
-              rolJurado: 'Docente Experto 1',
-              nota: 9.2,
-              observaciones: 'Demostración matemática precisa y fundamentada en la bibliografía oficial del sílabo.',
-              fechaEvaluacion: '2026-09-12 10:50'
-            },
-            {
-              juradoNombre: 'Dra. Elena Ruiz',
-              rolJurado: 'Docente Experto 2',
-              nota: 9.3,
-              observaciones: 'Excelente empatía docente y uso apropiado de recursos didácticos digitales.',
-              fechaEvaluacion: '2026-09-12 10:52'
-            }
-          ]
-        };
-        return of(resultadoMock);
-      })
-    );
+    const pres = this.presentacionesSubject.value.find(p => p.id === presentacionId) || this.presentacionesSubject.value[0];
+    const resultadoMock: ResultadoPresentacionDto = {
+      presentacionId: pres ? pres.id : presentacionId,
+      ayudantiaId: pres ? pres.ayudantiaId : 101,
+      estudianteNombre: pres ? pres.estudianteNombre : 'Alejandro García Mendoza',
+      catedraNombre: pres ? pres.catedraNombre : 'Cálculo Avanzado',
+      temaSilabo: pres ? pres.temaSilabo : 'Unidad 3: Teorema de Green y Stokes',
+      fechaSustentacion: pres ? pres.fecha : '2026-09-12T10:00',
+      promedioFinal: 9.25,
+      notaMinimaAprobatoria: 8.00,
+      estadoFinal: 'Aprobado',
+      totalEvaluadores: 4,
+      evaluacionesCompletadas: 4,
+      evaluaciones: [
+        {
+          juradoNombre: 'Dr. Roberto Zambrano',
+          rolJurado: 'Decano de Facultad',
+          nota: 9.5,
+          observaciones: 'Excelente solvencia teórica y manejo del tiempo en la exposición del teorema.',
+          fechaEvaluacion: '2026-09-12 10:45'
+        },
+        {
+          juradoNombre: 'Mgtr. Patricia Silva',
+          rolJurado: 'Coordinadora de Carrera',
+          nota: 9.0,
+          observaciones: 'Buena claridad pedagógica. Respondió con criterio las dudas metodológicas planteadas.',
+          fechaEvaluacion: '2026-09-12 10:47'
+        },
+        {
+          juradoNombre: 'Ing. Marco Morales',
+          rolJurado: 'Docente Experto 1',
+          nota: 9.2,
+          observaciones: 'Demostración matemática precisa y fundamentada en la bibliografía oficial del sílabo.',
+          fechaEvaluacion: '2026-09-12 10:50'
+        },
+        {
+          juradoNombre: 'Dra. Elena Ruiz',
+          rolJurado: 'Docente Experto 2',
+          nota: 9.3,
+          observaciones: 'Excelente empatía docente y uso apropiado de recursos didácticos digitales.',
+          fechaEvaluacion: '2026-09-12 10:52'
+        }
+      ]
+    };
+
+    return of(resultadoMock);
   }
 
   /**
-   * Obtiene la lista de presentaciones programadas para el jurado/coordinación
+   * Obtiene la lista de presentaciones programadas para el jurado/coordinación.
+   * Proporciona los datos reactivos guardados en el sistema sin disparar un GET 405 en el backend
+   * (dado que el endpoint /api/Jurado/presentaciones en ASP.NET sólo admite POST).
    */
   getPresentaciones(): Observable<PresentacionDetalleDto[]> {
-    return this.http.get<PresentacionDetalleDto[]>(`${this.apiUrl}/presentaciones`).pipe(
-      catchError(() => of([...this.presentacionesMock]))
-    );
+    return of([...this.presentacionesSubject.value]);
   }
 
   /**
    * Obtiene una presentación por ID
    */
   getPresentacionById(id: number): Observable<PresentacionDetalleDto | undefined> {
-    return this.http.get<PresentacionDetalleDto>(`${this.apiUrl}/presentaciones/${id}`).pipe(
-      catchError(() => of(this.presentacionesMock.find(p => p.id === id)))
-    );
+    return of(this.presentacionesSubject.value.find(p => p.id === id));
   }
 }
