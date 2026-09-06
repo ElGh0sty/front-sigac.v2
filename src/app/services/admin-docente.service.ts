@@ -135,7 +135,7 @@ export class AdminDocenteService {
    * Obtiene la lista de docentes registrados, con fallback en memoria para pruebas locales.
    */
   getDocentes(): Observable<DocenteItemDto[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/api/persona`).pipe(
+    return this.http.get<any[]>(`${this.baseUrl}/api/Persona`).pipe(
       map(personas => {
         if (!Array.isArray(personas) || personas.length === 0) {
           return [...this.docentesMock];

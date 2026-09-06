@@ -47,7 +47,7 @@ export class RolesService {
   }
 
   private get apiUrl() {
-    return `${getApiBase()}/api/roles`;
+    return `${getApiBase()}/api/Roles`;
   }
 
   // Jerarquía del sistema universitario: Administrador -> Decano -> Coordinador -> Docente -> Estudiante

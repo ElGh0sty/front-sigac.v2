@@ -95,7 +95,7 @@ export class EstudianteService {
     private materiaService: MateriaService
   ) {}
 
-  private get apiUrl() { return `${getApiBase()}/api/estudiante`; }
+  private get apiUrl() { return `${getApiBase()}/api/Estudiante`; }
 
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
@@ -128,7 +128,7 @@ export class EstudianteService {
     const nombreUsuario = typeof window !== 'undefined' ? (localStorage.getItem('nombre') || 'Alejandro García') : 'Alejandro García';
 
     const nuevaPostulacion: HistorialAyudantiaDto = {
-      ayudantiaId: Date.now(),
+      ayudantiaId: Math.floor((Date.now() / 1000) % 2000000000) + 1,
       estadoAyudantia: 'Pendiente',
       catedraId: Number(dto.catedraId),
       nombreCatedra: materia?.nombre || `Materia #${dto.catedraId}`,
@@ -153,7 +153,7 @@ export class EstudianteService {
     const nombreUsuario = typeof window !== 'undefined' ? (localStorage.getItem('nombre') || 'Alejandro García') : 'Alejandro García';
 
     const nuevaBitacora: BitacoraItemDto = {
-      id: Date.now(),
+      id: Math.floor((Date.now() / 1000) % 2000000000) + 1,
       ayudantiaId: Number(dto.ayudantiaId),
       nombreAyudante: nombreUsuario,
       nombreCatedra: postulacion?.nombreCatedra || 'Ayudantía General',

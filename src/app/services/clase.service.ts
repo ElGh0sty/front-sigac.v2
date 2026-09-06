@@ -150,8 +150,8 @@ export class ClaseService {
 
   constructor(private http: HttpClient) {}
 
-  private get apiUrl() { return `${getApiBase()}/api/clase`; }
-  private get sesionApiUrl() { return `${getApiBase()}/api/clasesesion`; }
+  private get apiUrl() { return `${getApiBase()}/api/Clase`; }
+  private get sesionApiUrl() { return `${getApiBase()}/api/ClaseSesion`; }
 
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
@@ -190,7 +190,7 @@ export class ClaseService {
       : (dto.materiaId ? [Number(dto.materiaId)] : []);
 
     const nuevaClase: ClaseDto = {
-      id: Date.now(),
+      id: Math.floor((Date.now() / 1000) % 2000000000) + 1,
       nombre: dto.nombre.trim(),
       materiaId: dto.materiaId ? Number(dto.materiaId) : (matIds[0] || 101),
       materiaIds: matIds,
@@ -263,7 +263,7 @@ export class ClaseService {
   // Sesiones
   createClaseSesion(dto: CreateClaseSesionDto): Observable<ClaseSesionDto> {
     const nuevaSesion: ClaseSesionDto = {
-      id: Date.now(),
+      id: Math.floor((Date.now() / 1000) % 2000000000) + 1,
       materiaId: Number(dto.materiaId),
       claseId: dto.claseId ? Number(dto.claseId) : undefined,
       docenteId: Number(dto.docenteId),
@@ -317,7 +317,7 @@ export class ClaseService {
   // Asistencia
   registrarAsistencia(claseSesionId: number, dto: CreateAsistenciaDto): Observable<AsistenciaDto> {
     return this.http.post<AsistenciaDto>(`${this.sesionApiUrl}/${claseSesionId}/asistencia`, dto).pipe(
-      catchError(() => of({ id: Date.now(), ...dto }))
+      catchError(() => of({ id: Math.floor((Date.now() / 1000) % 2000000000) + 1, ...dto }))
     );
   }
 

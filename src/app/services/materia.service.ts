@@ -372,7 +372,7 @@ export class MateriaService {
 
   constructor(private http: HttpClient) {}
 
-  private get apiUrl() { return `${getApiBase()}/api/materia`; }
+  private get apiUrl() { return `${getApiBase()}/api/Materia`; }
 
   private mapToMateriaDto(item: any, idx: number): MateriaDto {
     return {
@@ -401,6 +401,12 @@ export class MateriaService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          if (key === this.STORAGE_RECURSOS) {
+            return (parsed as any[]).map(r => ({
+              ...r,
+              id: (Number(r.id) > 2147483647) ? (Number(r.id) % 2000000000) + 1 : Number(r.id)
+            })) as unknown as T;
+          }
           return parsed as unknown as T;
         }
       }
@@ -665,8 +671,9 @@ export class MateriaService {
       else if (urlLower.includes('geogebra') || urlLower.includes('sim') || urlLower.includes('lab')) tipoCalculado = 'Simulador';
     }
 
+    const safeGeneratedId = Math.floor((Date.now() / 1000) % 2000000000) + Math.floor(Math.random() * 1000) + 1;
     const nuevoRecurso: RecursoDto = {
-      id: Date.now(),
+      id: safeGeneratedId,
       materiaId: Number(materiaId),
       temaId: dto.temaId,
       temaNombre: dto.temaNombre || 'Tema 1: Fundamentos y Conceptos Iniciales',
@@ -698,6 +705,7 @@ export class MateriaService {
   }
 
   marcarRecursoComoVisto(recursoId: number): Observable<any> {
+    const safeRecursoId = Math.floor(Math.abs(Number(recursoId)) % 2147483647) || 1;
     const list = this.recursosSubject.value.map(r => {
       if (Number(r.id) === Number(recursoId)) {
         return { ...r, visto: !r.visto };
@@ -707,7 +715,11 @@ export class MateriaService {
     this.recursosSubject.next(list);
     this.saveStorage(this.STORAGE_RECURSOS, list);
 
-    return this.http.post(`${this.apiUrl}/recursos/marcar-visto`, { recursoId } as MarkRecursoAsSeenDto).pipe(
+    const payload: MarkRecursoAsSeenDto = {
+      recursoId: safeRecursoId
+    };
+
+    return this.http.post(`${this.apiUrl}/recursos/marcar-visto`, payload).pipe(
       catchError(() => of({ success: true }))
     );
   }

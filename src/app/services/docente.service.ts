@@ -192,7 +192,7 @@ export class DocenteService {
 
   constructor(private http: HttpClient) {}
 
-  private get apiUrl() { return `${getApiBase()}/api/docente`; }
+  private get apiUrl() { return `${getApiBase()}/api/Docente`; }
 
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
@@ -219,7 +219,7 @@ export class DocenteService {
 
   registrarEvaluacionDiagnostica(catedraId: number, dto: EvaluacionDto): Observable<EvaluacionDto> {
     return this.http.post<EvaluacionDto>(`${this.apiUrl}/catedras/${catedraId}/evaluacion-diagnostica`, dto).pipe(
-      catchError(() => of({ id: Date.now(), ...dto }))
+      catchError(() => of({ id: Math.floor((Date.now() / 1000) % 2000000000) + 1, ...dto }))
     );
   }
 
@@ -232,7 +232,7 @@ export class DocenteService {
   planificarActividadAyudantia(ayudantiaId: number, dto: ActividadAyudantiaDto): Observable<ActividadAyudantiaDto> {
     const itemGuardado: ActividadAyudantiaDto = {
       ...dto,
-      id: dto.id || Date.now(),
+      id: dto.id || (Math.floor((Date.now() / 1000) % 2000000000) + 1),
       ayudantiaId: Number(ayudantiaId)
     };
 

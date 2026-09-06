@@ -59,7 +59,7 @@ export class AuthService {
 
   private get personaUrl() {
     const base = getApiBase();
-    return base ? `${base}/api/persona` : '/api/persona';
+    return base ? `${base}/api/Persona` : '/api/Persona';
   }
 
   login(credentials: LoginDto): Observable<UserDto> {

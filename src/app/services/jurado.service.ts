@@ -73,7 +73,7 @@ export class JuradoService {
   private http = inject(HttpClient);
 
   private get apiUrl() {
-    return `${getApiBase()}/api/jurado`;
+    return `${getApiBase()}/api/Jurado`;
   }
 
   // Base mock en memoria para fallback cuando el backend esté offline

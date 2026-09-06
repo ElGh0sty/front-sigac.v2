@@ -52,16 +52,14 @@ export class CoordinadorService {
     { id: 205, nombre: 'Física Clásica y Electromagnetismo', codigo: 'FIS-102', minimoNota: 7.0, docente: 'Dra. Elena Ramos', semestre: 'Segundo Semestre' }
   ];
 
-  private get apiUrl() { return `${getApiBase()}/api/coordinador`; }
+  private get apiUrl() { return `${getApiBase()}/api/Coordinador`; }
 
   /**
-   * GET /api/coordinador/catedras/minimo-nota
-   * Lista las cátedras y su nota mínima configurada para aprobación de ayudantía
+   * Cátedras configuradas para nota mínima de ayudantía
+   * (En el backend el endpoint es PUT /api/Coordinador/catedras/{id}/minimo-nota)
    */
   getCatedrasConMinimoNota(): Observable<CatedraMinimoNotaDto[]> {
-    return this.http.get<CatedraMinimoNotaDto[]>(`${this.apiUrl}/catedras/minimo-nota`).pipe(
-      catchError(() => of([...this.catedrasMock]))
-    );
+    return of([...this.catedrasMock]);
   }
 
   getSolicitudesAyudantia(): Observable<SolicitudAyudantiaDto[]> {
@@ -109,14 +107,13 @@ export class CoordinadorService {
   }
 
   /**
-   * PUT /api/coordinador/catedras/{id}/minimo-nota
+   * PUT /api/Coordinador/catedras/{id}/minimo-nota
    * Roles: Coordinador
    * Actualiza la nota mínima requerida para aprobar la cátedra/ayudantía
    */
   actualizarMinimoNota(catedraId: number, minimoNota: number): Observable<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }> {
     const payload = {
-      minimoNota,
-      MinimoNota: minimoNota
+      minimoNota: Number(minimoNota)
     };
     return this.http.put<{ success: boolean; mensaje: string; catedraId: number; minimoNota: number }>(
       `${this.apiUrl}/catedras/${catedraId}/minimo-nota`,
@@ -144,7 +141,7 @@ export class CoordinadorService {
   }
 
   /**
-   * POST /api/coordinador/ayudantias/documentos
+   * POST /api/Coordinador/ayudantias/documentos
    * Envía un documento anexo o resolución en formato multipart/form-data
    */
   subirDocumentoAnexo(formData: FormData): Observable<any> {
@@ -157,12 +154,12 @@ export class CoordinadorService {
   }
 
   /**
-   * GET /api/coordinador/estudiantes/{id}/validacion-requisitos
+   * GET /api/Estudiante/{id}/validacion-malla
    * Verifica los requisitos normativos: 50% de la malla, promedio general > promedio carrera, nota cátedra > promedio curso.
    */
   getValidacionRequisitosEstudiante(estudianteId: number): Observable<{ porcentajeMalla: number; promedioEstudiante: number; promedioCarrera: number; promedioCurso: number; cumpleRequisitos: boolean }> {
     return this.http.get<{ porcentajeMalla: number; promedioEstudiante: number; promedioCarrera: number; promedioCurso: number; cumpleRequisitos: boolean }>(
-      `${this.apiUrl}/estudiantes/${estudianteId}/validacion-requisitos`
+      `${getApiBase()}/api/Estudiante/${estudianteId}/validacion-malla`
     ).pipe(
       catchError(() => {
         const isAprobado = estudianteId !== 3;
@@ -178,14 +175,14 @@ export class CoordinadorService {
   }
 
   /**
-   * POST /api/jurado/presentaciones
+   * POST /api/Jurado/presentaciones
    * Convoca al Tribunal Evaluador para la sustentación del sílabo
    */
   crearPresentacionTribunal(body: { ayudantiaId: number; fecha: string; docentesIds: number[]; decanoId?: number; coordinadorId?: number; temaSilabo?: string; lugarOEnlace?: string }): Observable<any> {
-    return this.http.post(`${getApiBase()}/api/jurado/presentaciones`, body).pipe(
+    return this.http.post(`${getApiBase()}/api/Jurado/presentaciones`, body).pipe(
       catchError(() => of({
         success: true,
-        presentacionId: Date.now(),
+        presentacionId: Math.floor((Date.now() / 1000) % 2000000000) + 1,
         message: 'Tribunal evaluador convocado exitosamente para la sustentación del sílabo.'
       }))
     );
