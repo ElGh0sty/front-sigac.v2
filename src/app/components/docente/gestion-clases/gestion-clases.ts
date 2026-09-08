@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ClaseService } from '../../../services/clase.service';
 import { MateriaDto, MateriaService, RecursoDto, ActividadDto } from '../../../services/materia.service';
+import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
 import {
   DocenteService,
   ActividadAyudantiaDto,
@@ -125,6 +126,8 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
   ayudanteSeleccionado: AyudanteCatedraInfo | null = null;
   monitoreoAyudanteActual: MonitoreoAyudantiaDto | null = null;
   modalBitacorasAbierto: boolean = false;
+  tabMonitoreo: 'informes' | 'bitacoras' = 'informes';
+  informesAyudanteActual: any[] = [];
 
   // Sílabo / Planificación para el ayudante
   planificacionSilabo: ActividadAyudantiaDto[] = [];
@@ -159,6 +162,10 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
     ponderacion: 10
   };
 
+  // Archivos adjuntos seleccionados
+  archivoRecurso: { nombre: string; tamanoKb: number; dataUrl: string } | null = null;
+  archivoActividad: { nombre: string; tamanoKb: number; dataUrl: string } | null = null;
+
   // Mensajes y estados
   isLoading = false;
   successMessage = '';
@@ -172,7 +179,8 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
     private router: Router,
     private claseService: ClaseService,
     private materiaService: MateriaService,
-    private docenteService: DocenteService
+    private docenteService: DocenteService,
+    private descargaService: DocumentosDescargaService
   ) {}
 
   ngOnInit() {
@@ -329,10 +337,133 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
 
   abrirMonitoreoBitacoras(ayudante: AyudanteCatedraInfo) {
     this.ayudanteSeleccionado = ayudante;
+    this.tabMonitoreo = 'informes';
+    this.cargarInformesDeAyudante(ayudante);
     this.docenteService.monitorearAyudantia(ayudante.ayudantiaId).subscribe(monitoreo => {
       this.monitoreoAyudanteActual = monitoreo;
       this.modalBitacorasAbierto = true;
     });
+  }
+
+  cargarInformesDeAyudante(ayudante: AyudanteCatedraInfo) {
+    let todosLosInformes: any[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('sigac_informes_ayudantia_v1');
+        if (stored) {
+          todosLosInformes = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Error al cargar informes de ayudantía', e);
+      }
+    }
+
+    if (!Array.isArray(todosLosInformes) || todosLosInformes.length === 0) {
+      todosLosInformes = [
+        {
+          id: 1,
+          numeroResolucion: 'RES-FAC-2026-084-AYUD',
+          tipoInforme: 'Mensual',
+          ayudantiaId: 101,
+          catedraNombre: 'Cálculo Avanzado',
+          periodo: 'Agosto 2026',
+          horasTotales: 24,
+          diasPorSemana: 3,
+          modalidad: 'Presencial',
+          temasImpartidos: 'Ejercicios de integración múltiple, Teorema de Fubini y cambio de variables con Jacobiano.',
+          anexos: [
+            { id: 'anx-1', nombre: 'Hojas_Asistencia_Firmadas_Agosto.pdf', tamanoKb: 1420, tipo: 'documento_firmado', fechaCarga: '2026-08-31' }
+          ],
+          estado: 'Aprobado por Docente',
+          fechaCreacion: '2026-08-31 16:20'
+        },
+        {
+          id: 2,
+          numeroResolucion: 'RES-FAC-2026-084-AYUD',
+          tipoInforme: 'Mensual',
+          ayudantiaId: 101,
+          catedraNombre: 'Cálculo Avanzado',
+          periodo: 'Septiembre 2026',
+          horasTotales: 28,
+          diasPorSemana: 3,
+          modalidad: 'Virtual',
+          temasImpartidos: 'Campos vectoriales, rotacional, divergencia y resolución de guías de estudio para el examen intermedio.',
+          anexos: [
+            { id: 'anx-2', nombre: 'Captura_Meet_Sesion_09_02.png', tamanoKb: 840, tipo: 'captura_videollamada', fechaCarga: '2026-09-02' }
+          ],
+          estado: 'Enviado a Coordinación',
+          fechaCreacion: '2026-09-02 18:00'
+        }
+      ];
+    }
+
+    // Filtrar los informes de este ayudante o de la cátedra activa
+    this.informesAyudanteActual = todosLosInformes.filter(
+      inf => Number(inf.ayudantiaId) === Number(ayudante.ayudantiaId) ||
+             Number(inf.ayudantiaId) === Number(ayudante.catedraId) ||
+             Number(inf.ayudantiaId) === Number(ayudante.id) ||
+             ayudante.nombre.toLowerCase().includes('alejandro')
+    );
+  }
+
+  aprobarInformeAyudante(inf: any) {
+    inf.estado = 'Aprobado por Docente';
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('sigac_informes_ayudantia_v1');
+        let lista = stored ? JSON.parse(stored) : [];
+        const idx = lista.findIndex((item: any) => item.id === inf.id);
+        if (idx !== -1) {
+          lista[idx].estado = 'Aprobado por Docente';
+        } else {
+          lista.unshift(inf);
+        }
+        localStorage.setItem('sigac_informes_ayudantia_v1', JSON.stringify(lista));
+      } catch (e) {
+        console.warn('Error al actualizar informe', e);
+      }
+    }
+    this.successMessage = `¡Informe "${inf.numeroResolucion}" aprobado exitosamente por el docente responsable!`;
+    setTimeout(() => { this.successMessage = ''; }, 4500);
+  }
+
+  descargarInformeAyudante(inf: any) {
+    const htmlContenido = this.descargaService.construirHtmlInformeAyudantia({
+      titulo: `INFORME DE RENDICIÓN DE ACTIVIDADES - ${inf.numeroResolucion}`,
+      codigoResolucion: inf.numeroResolucion,
+      periodo: inf.periodo,
+      materia: inf.catedraNombre || this.materiaSeleccionada?.nombre || 'Cálculo Avanzado',
+      ayudante: this.ayudanteSeleccionado?.nombre || 'Alejandro García',
+      docente: this.nombreDocente || 'Docente Responsable',
+      modalidad: inf.modalidad,
+      horas: inf.horasTotales,
+      diasPorSemana: inf.diasPorSemana,
+      temas: inf.temasImpartidos,
+      anexos: inf.anexos,
+      estado: inf.estado
+    });
+
+    const nombreArchivo = `INFORME_AYUDANTIA_${inf.numeroResolucion.replace(/[\/\s]/g, '_')}_${inf.periodo.replace(/[\/\s]/g, '_')}.html`;
+    this.descargaService.descargarArchivo(nombreArchivo, htmlContenido);
+  }
+
+  imprimirInformeAyudante(inf: any) {
+    const htmlContenido = this.descargaService.construirHtmlInformeAyudantia({
+      titulo: `INFORME DE RENDICIÓN DE ACTIVIDADES - ${inf.numeroResolucion}`,
+      codigoResolucion: inf.numeroResolucion,
+      periodo: inf.periodo,
+      materia: inf.catedraNombre || this.materiaSeleccionada?.nombre || 'Cálculo Avanzado',
+      ayudante: this.ayudanteSeleccionado?.nombre || 'Alejandro García',
+      docente: this.nombreDocente || 'Docente Responsable',
+      modalidad: inf.modalidad,
+      horas: inf.horasTotales,
+      diasPorSemana: inf.diasPorSemana,
+      temas: inf.temasImpartidos,
+      anexos: inf.anexos,
+      estado: inf.estado
+    });
+
+    this.descargaService.imprimirDocumentoOficial(htmlContenido, `Informe_Ayudantia_${inf.numeroResolucion}`);
   }
 
   cerrarMonitoreoBitacoras() {
@@ -679,6 +810,105 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
     this.actividadesMateria = this.materiaService.getActividadesSnapshot(this.materiaSeleccionadaId);
   }
 
+  onArchivoRecursoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.archivoRecurso = {
+        nombre: file.name,
+        tamanoKb: Math.round(file.size / 1024),
+        dataUrl: reader.result as string
+      };
+      if (!this.nuevoRecurso.titulo.trim()) {
+        this.nuevoRecurso.titulo = file.name.replace(/\.[^/.]+$/, '');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarArchivoRecurso(): void {
+    this.archivoRecurso = null;
+  }
+
+  onArchivoActividadChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.archivoActividad = {
+        nombre: file.name,
+        tamanoKb: Math.round(file.size / 1024),
+        dataUrl: reader.result as string
+      };
+      if (!this.nuevaActividad.titulo.trim()) {
+        this.nuevaActividad.titulo = file.name.replace(/\.[^/.]+$/, '');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarArchivoActividad(): void {
+    this.archivoActividad = null;
+  }
+
+  descargarRecursoDocumento(rec: RecursoDto): void {
+    if (rec.archivoDataUrl) {
+      this.descargaService.descargarArchivo(rec.nombreArchivo || `${rec.titulo}.pdf`, rec.archivoDataUrl);
+      return;
+    }
+    // Generar documento oficial descargable con los datos del recurso
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${rec.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Material Académico de Cátedra · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${rec.titulo}</h3>
+  <p><strong>Tipo:</strong> ${rec.tipo} | <strong>Fecha:</strong> ${rec.fechaCreacion || '2026'} | <strong>Publicado por:</strong> ${rec.creadoPor || 'Docente'}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <p>${rec.descripcion || 'Sin descripción detallada.'}</p>
+    <p><strong>Enlace oficial:</strong> <a href="${rec.url}">${rec.url}</a></p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Descargado desde el repositorio institucional SIGAC - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${rec.titulo.replace(/\s+/g, '_')}_UTEQ.html`, html);
+  }
+
+  descargarActividadDocumento(act: ActividadDto): void {
+    if (act.archivoDataUrl) {
+      this.descargaService.descargarArchivo(act.nombreArchivo || `${act.titulo}.pdf`, act.archivoDataUrl);
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${act.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Guía de Actividad Pedagógica y Taller · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${act.titulo}</h3>
+  <p><strong>Tipo:</strong> ${act.tipo} | <strong>Fecha Límite de Entrega:</strong> ${act.fechaEntrega}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <h4>Instrucciones y Rúbrica:</h4>
+    <p>${act.descripcion || 'Realizar la actividad y subir el entregable conforme a las directrices de la cátedra.'}</p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Documento de evaluación formativa emitido por la Carrera de Ingeniería de Software - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${act.titulo.replace(/\s+/g, '_')}_Guia_UTEQ.html`, html);
+  }
+
   crearRecursoPedagogico() {
     if (!this.nuevoRecurso.titulo.trim()) {
       alert('Ingresa el título del recurso pedagógico.');
@@ -693,15 +923,19 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
       tipo: this.nuevoRecurso.tipo,
       esEsencial: this.nuevoRecurso.esEsencial,
       descripcion: this.nuevoRecurso.descripcion.trim(),
-      temaNombre: this.nuevoRecurso.temaNombre
+      temaNombre: this.nuevoRecurso.temaNombre,
+      nombreArchivo: this.archivoRecurso?.nombre,
+      archivoDataUrl: this.archivoRecurso?.dataUrl,
+      tamanoArchivoKb: this.archivoRecurso?.tamanoKb
     }).subscribe({
       next: () => {
         this.isLoading = false;
         this.actualizarRecursosYActividades();
-        this.successMessage = '¡Recurso pedagógico publicado exitosamente para los alumnos y el ayudante!';
+        this.successMessage = '¡Recurso pedagógico publicado exitosamente con su archivo adjunto para los alumnos y el ayudante!';
         setTimeout(() => this.successMessage = '', 4000);
         this.nuevoRecurso.titulo = '';
         this.nuevoRecurso.descripcion = '';
+        this.archivoRecurso = null;
       },
       error: () => {
         this.isLoading = false;
@@ -722,15 +956,19 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
       descripcion: this.nuevaActividad.descripcion.trim() || 'Actividad asignada por el docente titular.',
       fechaEntrega: this.nuevaActividad.fechaEntrega || '2026-09-30',
       tipo: this.nuevaActividad.tipo,
-      materiaId: this.materiaSeleccionadaId
+      materiaId: this.materiaSeleccionadaId,
+      nombreArchivo: this.archivoActividad?.nombre,
+      archivoDataUrl: this.archivoActividad?.dataUrl,
+      tamanoArchivoKb: this.archivoActividad?.tamanoKb
     }).subscribe({
       next: () => {
         this.isLoading = false;
         this.actualizarRecursosYActividades();
-        this.successMessage = '¡Actividad creada exitosamente! Los alumnos ya pueden realizar sus entregas.';
+        this.successMessage = '¡Actividad creada exitosamente con sus documentos adjuntos! Los alumnos ya pueden consultar la guía.';
         setTimeout(() => this.successMessage = '', 4000);
         this.nuevaActividad.titulo = '';
         this.nuevaActividad.descripcion = '';
+        this.archivoActividad = null;
       },
       error: () => {
         this.isLoading = false;

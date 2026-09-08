@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { MateriaDto, MateriaService, RecursoDto, ActividadDto, RegistroAsistenciaDto, AsistenteRegistro } from '../../../services/materia.service';
 import { DocenteService, ActividadAyudantiaDto } from '../../../services/docente.service';
 import { EstudianteService, BitacoraItemDto } from '../../../services/estudiante.service';
+import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
 
 export interface SesionHorarioAyudante {
   id: number;
@@ -107,6 +108,10 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
     evidenciaUrl: 'https://repositorio.uteq.edu.ec/bitacoras/informe-semanal.pdf'
   };
 
+  // Archivos adjuntos seleccionados por el ayudante
+  archivoRecurso: { nombre: string; tamanoKb: number; dataUrl: string } | null = null;
+  archivoActividad: { nombre: string; tamanoKb: number; dataUrl: string } | null = null;
+
   // Mensajes y estados
   successMessage: string = '';
   errorMessage: string = '';
@@ -118,7 +123,8 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
     private docenteService: DocenteService,
     private estudianteService: EstudianteService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private descargaService: DocumentosDescargaService
   ) {}
 
   ngOnInit() {
@@ -320,6 +326,104 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
 
   // ==================== GESTIÓN DE RECURSOS Y ACTIVIDADES ====================
 
+  onArchivoRecursoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.archivoRecurso = {
+        nombre: file.name,
+        tamanoKb: Math.round(file.size / 1024),
+        dataUrl: reader.result as string
+      };
+      if (!this.nuevoRecurso.titulo.trim()) {
+        this.nuevoRecurso.titulo = file.name.replace(/\.[^/.]+$/, '');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarArchivoRecurso(): void {
+    this.archivoRecurso = null;
+  }
+
+  onArchivoActividadChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.archivoActividad = {
+        nombre: file.name,
+        tamanoKb: Math.round(file.size / 1024),
+        dataUrl: reader.result as string
+      };
+      if (!this.nuevaActividad.titulo.trim()) {
+        this.nuevaActividad.titulo = file.name.replace(/\.[^/.]+$/, '');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  quitarArchivoActividad(): void {
+    this.archivoActividad = null;
+  }
+
+  descargarRecursoDocumento(rec: RecursoDto): void {
+    if (rec.archivoDataUrl) {
+      this.descargaService.descargarArchivo(rec.nombreArchivo || `${rec.titulo}.pdf`, rec.archivoDataUrl);
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${rec.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Material de Refuerzo de Ayudantía · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${rec.titulo}</h3>
+  <p><strong>Tipo:</strong> ${rec.tipo} | <strong>Fecha:</strong> ${rec.fechaCreacion || '2026'} | <strong>Publicado por:</strong> ${rec.creadoPor || 'Ayudante de Cátedra'}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <p>${rec.descripcion || 'Material pedagógico para preparación de talleres y exámenes.'}</p>
+    <p><strong>Enlace oficial:</strong> <a href="${rec.url}">${rec.url}</a></p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Descargado desde el repositorio de ayudantías SIGAC - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${rec.titulo.replace(/\s+/g, '_')}_UTEQ.html`, html);
+  }
+
+  descargarActividadDocumento(act: ActividadDto): void {
+    if (act.archivoDataUrl) {
+      this.descargaService.descargarArchivo(act.nombreArchivo || `${act.titulo}.pdf`, act.archivoDataUrl);
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${act.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Guía Práctica y Taller de Ayudantía · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${act.titulo}</h3>
+  <p><strong>Tipo:</strong> ${act.tipo} | <strong>Fecha Límite:</strong> ${act.fechaEntrega}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <h4>Instrucciones para el estudiante:</h4>
+    <p>${act.descripcion || 'Resolver los ejercicios planteados y remitir el documento digital antes de la fecha límite.'}</p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Asignación formativa desarrollada por la Ayudantía de Cátedra - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${act.titulo.replace(/\s+/g, '_')}_Guia_Ayudantia_UTEQ.html`, html);
+  }
+
   guardarRecurso() {
     if (!this.nuevoRecurso.titulo.trim()) {
       this.mostrarMensajeError('Por favor ingresa un título para el recurso.');
@@ -336,7 +440,10 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
       esEsencial: this.nuevoRecurso.esEsencial,
       visto: false,
       creadoPor: 'Ayudante de Cátedra',
-      fechaCreacion: new Date().toISOString().split('T')[0]
+      fechaCreacion: new Date().toISOString().split('T')[0],
+      nombreArchivo: this.archivoRecurso?.nombre,
+      archivoDataUrl: this.archivoRecurso?.dataUrl,
+      tamanoArchivoKb: this.archivoRecurso?.tamanoKb
     };
 
     this.materiaService.addRecurso(this.materiaSeleccionadaId, recurso);
@@ -344,6 +451,7 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
     this.modalNuevoRecurso = false;
     this.nuevoRecurso.titulo = '';
     this.nuevoRecurso.descripcion = '';
+    this.archivoRecurso = null;
     this.mostrarMensajeExito('Recurso didáctico agregado con éxito.');
   }
 
@@ -360,7 +468,10 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
       tipo: this.nuevaActividad.tipo,
       descripcion: this.nuevaActividad.descripcion || 'Actividad práctica para evaluar el progreso formativo.',
       fechaEntrega: this.nuevaActividad.fechaEntrega || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      estado: 'pendiente'
+      estado: 'pendiente',
+      nombreArchivo: this.archivoActividad?.nombre,
+      archivoDataUrl: this.archivoActividad?.dataUrl,
+      tamanoArchivoKb: this.archivoActividad?.tamanoKb
     };
 
     this.materiaService.addActividad(this.materiaSeleccionadaId, actividad);
@@ -368,6 +479,7 @@ export class AyudanteMateriasComponent implements OnInit, OnDestroy {
     this.modalNuevaActividad = false;
     this.nuevaActividad.titulo = '';
     this.nuevaActividad.descripcion = '';
+    this.archivoActividad = null;
     this.mostrarMensajeExito('Actividad evaluativa creada con éxito.');
   }
 

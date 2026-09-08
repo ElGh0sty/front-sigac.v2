@@ -70,6 +70,9 @@ export interface RecursoDto {
   visto: boolean;
   creadoPor?: string;
   fechaCreacion?: string;
+  nombreArchivo?: string;
+  archivoDataUrl?: string;
+  tamanoArchivoKb?: number;
 }
 
 export interface CreateRecursoDto {
@@ -81,6 +84,9 @@ export interface CreateRecursoDto {
   temaId?: number;
   temaNombre?: string;
   tipo?: string;
+  nombreArchivo?: string;
+  archivoDataUrl?: string;
+  tamanoArchivoKb?: number;
 }
 
 export interface RecursoConEstadoDto extends RecursoDto {}
@@ -99,6 +105,9 @@ export interface ActividadDto {
   estado: string; // 'pendiente' | 'entregada' | 'calificada'
   nota?: number;
   entregadoEl?: string;
+  nombreArchivo?: string;
+  archivoDataUrl?: string;
+  tamanoArchivoKb?: number;
 }
 
 export interface CreateActividadDto {
@@ -107,6 +116,9 @@ export interface CreateActividadDto {
   fechaEntrega: string;
   tipo: string;
   materiaId: number;
+  nombreArchivo?: string;
+  archivoDataUrl?: string;
+  tamanoArchivoKb?: number;
 }
 
 export interface AsistenteRegistro {
@@ -655,7 +667,10 @@ export class MateriaService {
       esEsencial: !!dto.esEsencial,
       visto: false,
       creadoPor: `${nombreUsuario} (${rolActual})`,
-      fechaCreacion: new Date().toISOString().split('T')[0]
+      fechaCreacion: new Date().toISOString().split('T')[0],
+      nombreArchivo: dto.nombreArchivo,
+      archivoDataUrl: dto.archivoDataUrl,
+      tamanoArchivoKb: dto.tamanoArchivoKb
     };
 
     const currentRecursos = this.recursosSubject.value;
@@ -735,7 +750,10 @@ export class MateriaService {
       descripcion: dto.descripcion?.trim() || 'Sin descripción',
       fechaEntrega: dto.fechaEntrega || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
       tipo: dto.tipo || 'Taller',
-      estado: 'pendiente'
+      estado: 'pendiente',
+      nombreArchivo: dto.nombreArchivo,
+      archivoDataUrl: dto.archivoDataUrl,
+      tamanoArchivoKb: dto.tamanoArchivoKb
     };
 
     const current = this.actividadesSubject.value;

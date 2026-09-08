@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MateriaService, MateriaDto, RecursoDto, ActividadDto, RegistroAsistenciaDto } from '../../../services/materia.service';
+import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
 
 @Component({
   selector: 'app-materia-detalle',
@@ -68,7 +69,8 @@ export class MateriaDetalleComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private materiaService: MateriaService
+    private materiaService: MateriaService,
+    private descargaService: DocumentosDescargaService
   ) {}
 
   ngOnInit() {
@@ -310,5 +312,59 @@ export class MateriaDetalleComponent implements OnInit, OnDestroy {
     if (!fecha) return '';
     const d = new Date(fecha);
     return isNaN(d.getTime()) ? fecha : d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  descargarRecursoDocumento(r: RecursoDto): void {
+    if (r.archivoDataUrl) {
+      this.descargaService.descargarArchivo(r.nombreArchivo || `${r.titulo}.pdf`, r.archivoDataUrl);
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${r.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Material de Aprendizaje y Cátedra · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${r.titulo}</h3>
+  <p><strong>Tipo:</strong> ${r.tipo} | <strong>Docente / Tutor:</strong> ${r.creadoPor || 'Cátedra'}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <p>${r.descripcion || 'Material de lectura y apoyo para el semestre académico.'}</p>
+    <p><strong>Enlace del recurso:</strong> <a href="${r.url}">${r.url}</a></p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Descargado desde el aula virtual SIGAC - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${r.titulo.replace(/\s+/g, '_')}_UTEQ.html`, html);
+  }
+
+  descargarActividadDocumento(a: ActividadDto): void {
+    if (a.archivoDataUrl) {
+      this.descargaService.descargarArchivo(a.nombreArchivo || `${a.titulo}.pdf`, a.archivoDataUrl);
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>${a.titulo} - UTEQ</title>
+<style>body{font-family:sans-serif;padding:30px;line-height:1.6;color:#1e293b;}</style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:20px;">
+    <h2 style="color:#065f46;margin:0;">Universidad Técnica Estatal de Quevedo (UTEQ)</h2>
+    <h4 style="color:#475569;margin:4px 0 0 0;">Guía y Rúbrica de Actividad Evaluativa · SIGAC</h4>
+  </div>
+  <h3 style="color:#0f172a;">${a.titulo}</h3>
+  <p><strong>Tipo:</strong> ${a.tipo} | <strong>Fecha de Entrega:</strong> ${a.fechaEntrega}</p>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:15px;border-radius:8px;margin:15px 0;">
+    <h4>Instrucciones para la entrega:</h4>
+    <p>${a.descripcion || 'Completar el informe o taller y enviarlo a través de la plataforma.'}</p>
+  </div>
+  <p style="font-size:11px;color:#64748b;">Asignación oficial registrada en SIGAC - UTEQ.</p>
+</body>
+</html>`;
+    this.descargaService.descargarArchivo(`${a.titulo.replace(/\s+/g, '_')}_Guia_UTEQ.html`, html);
   }
 }

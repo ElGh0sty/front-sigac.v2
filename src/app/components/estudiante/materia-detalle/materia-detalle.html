@@ -254,10 +254,16 @@
 
             <!-- Acciones del Recurso -->
             <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs">
-              <a [href]="r.url" target="_blank" rel="noopener noreferrer"
-                 class="font-semibold text-accent hover:text-accent-dim flex items-center gap-1">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir recurso
-              </a>
+              <div class="flex items-center gap-2">
+                <button (click)="descargarRecursoDocumento(r)"
+                        class="font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors">
+                  <i class="fa-solid fa-download text-[10px]"></i> Descargar
+                </button>
+                <a [href]="r.url" target="_blank" rel="noopener noreferrer"
+                   class="font-semibold text-accent hover:text-accent-dim flex items-center gap-1">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir enlace
+                </a>
+              </div>
 
               <div class="flex items-center gap-1.5">
                 <button *ngIf="canEdit" (click)="toggleEsencial(r.id)"
@@ -394,6 +400,14 @@
 
               <!-- Acciones de la Actividad -->
               <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <!-- Descargar Guía / Documento adjunto -->
+                <button (click)="descargarActividadDocumento(a)"
+                        title="Descargar guía o rúbrica de la actividad"
+                        class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                  <i class="fa-solid fa-download text-emerald-600"></i>
+                  <span>Guía</span>
+                </button>
+
                 <!-- Estudiante: Entregar tarea -->
                 <a *ngIf="!canEdit && a.estado === 'pendiente'"
                    [routerLink]="['/estudiante/actividades', a.id]"

@@ -5,6 +5,7 @@ import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CoordinadorService, SolicitudAyudantiaDto } from '../../../services/coordinador.service';
 import { EstudianteService, BitacoraItemDto } from '../../../services/estudiante.service';
+import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
 
 export interface DocumentoAnexo {
   id: number;
@@ -181,7 +182,8 @@ export class AyudantiasDashboardComponent implements OnInit, OnDestroy {
     private coordinadorService: CoordinadorService,
     private estudianteService: EstudianteService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private descargaService: DocumentosDescargaService
   ) {}
 
   ngOnInit(): void {
@@ -436,56 +438,17 @@ export class AyudantiasDashboardComponent implements OnInit, OnDestroy {
   }
 
   descargarDocumento(doc: DocumentoAnexo): void {
-    // Generar archivo virtual de texto simulando PDF oficial
-    const contenido = `SISTEMA INTEGRADO DE GESTIÓN ACADÉMICA - SIGAC
-======================================================
-DOCUMENTO OFICIAL: ${doc.tipo.toUpperCase()}
-Código de Registro: ${doc.codigo}
-Título: ${doc.titulo}
-Materia / Cátedra: ${doc.materia}
-Ayudante / Asignado: ${doc.estudianteAyudante}
-Fecha de Emisión: ${doc.fechaEmision}
-Estado Administrativo: ${doc.estado}
-Validez: Certificada por Consejo Académico y Coordinación de Carrera.
-======================================================
-Este documento cuenta con firma digital homologada.`;
-
-    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${doc.codigo.replace(/\s+/g, '_')}.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    this.mostrarMensajeExito(`Descargando copia oficial de ${doc.codigo}...`);
+    this.descargaService.descargarDocumentoAdministrativo(doc);
+    this.mostrarMensajeExito(`Generando y descargando documento oficial ${doc.codigo}...`);
   }
 
   exportarReporteGeneral(): void {
-    const resumen = `REPORTE GENERAL DE AYUDANTÍAS Y RESOLUCIONES - SIGAC
-Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}
-------------------------------------------------------
-MÉTRICAS DEL PERIODO:
-- Total Solicitudes Procesadas: ${this.reporteMetricas.totalSolicitudes}
-- Solicitudes Aprobadas: ${this.reporteMetricas.aprobadas}
-- Solicitudes Pendientes: ${this.reporteMetricas.pendientes}
-- Horas de Ayudantía Efectivas: ${this.reporteMetricas.horasRegistradasTotales} hrs
-- Tasa de Cumplimiento: ${this.reporteMetricas.tasaCumplimiento}%
-
-AYUDANTÍAS ACTIVAS:
-${this.ayudantiasActivas.map(a => `* ${a.estudiante} | ${a.materia} | ${a.horasCompletadas}/${a.horasTotales} hrs (${a.estado})`).join('\n')}
-
-RESOLUCIONES Y ANEXOS REGISTRADOS:
-${this.documentosAnexos.map(d => `* [${d.tipo}] ${d.codigo} - ${d.titulo} (${d.estado})`).join('\n')}
-------------------------------------------------------`;
-
-    const blob = new Blob([resumen], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Reporte_Consolidado_Ayudantias_${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    this.mostrarMensajeExito('Reporte consolidado generado y descargado.');
+    this.descargaService.descargarReporteConsolidadoAyudantias(
+      this.reporteMetricas,
+      this.ayudantiasActivas,
+      this.documentosAnexos
+    );
+    this.mostrarMensajeExito('Reporte consolidado institucional generado y descargado.');
   }
 
   private mostrarMensajeExito(msg: string): void {
