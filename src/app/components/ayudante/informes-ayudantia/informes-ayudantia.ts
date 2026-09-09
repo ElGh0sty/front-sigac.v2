@@ -269,11 +269,18 @@ export class InformesAyudantiaComponent implements OnInit {
       fechaCreacion: new Date().toLocaleString()
     };
 
-    // Llamar al servicio existente de estudiante para mantener sincronía
+    // Llamar al servicio existente de estudiante para mantener sincronía con backend
     this.estudianteService.generarInformeMensual({
       ayudantiaId: Number(val.ayudantiaId),
       mes: Number(val.mes),
-      anio: Number(val.anio)
+      anio: Number(val.anio),
+      numeroResolucion: nuevoInforme.numeroResolucion,
+      tipoInforme: nuevoInforme.tipoInforme,
+      horasTotales: nuevoInforme.horasTotales,
+      diasPorSemana: nuevoInforme.diasPorSemana,
+      modalidad: nuevoInforme.modalidad,
+      temasImpartidos: nuevoInforme.temasImpartidos,
+      anexos: nuevoInforme.anexos
     }).subscribe({
       next: () => {
         this.finalizarGeneracionInforme(nuevoInforme);

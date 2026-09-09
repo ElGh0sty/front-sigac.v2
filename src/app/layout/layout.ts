@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RightSidebarComponent } from '../components/right-sidebar/right-sidebar';
 import { RightSidebarAyudanteComponent } from '../components/ayudante/right-sidebar-ayudante/right-sidebar-ayudante';
 import { AuthService } from '../services/auth.service';
-import { getApiBase, setApiBase } from '../api';
+import { getApiBase, setApiBase, isModoAutonomo } from '../api';
 
 @Component({
   selector: 'app-layout',
@@ -72,8 +72,8 @@ export class LayoutComponent implements OnInit {
 
   actualizarBackend() {
     const base = getApiBase();
-    this.backendActual = base || '';
-    this.inputBackendUrl = base || 'http://localhost:5291';
+    this.backendActual = isModoAutonomo() ? '' : (base || '');
+    this.inputBackendUrl = isModoAutonomo() ? '' : (base || 'http://localhost:5291');
   }
 
   mostrarSeccion(seccion: string): boolean {
@@ -135,9 +135,9 @@ export class LayoutComponent implements OnInit {
   }
 
   activarModoAutonomo() {
-    setApiBase('');
+    setApiBase('OFFLINE');
     this.actualizarBackend();
-    this.mensajeBackend = '✓ Modo Autónomo activado con éxito. Se usará almacenamiento local en memoria.';
+    this.mensajeBackend = '✓ Modo Autónomo activado con éxito. Se usará almacenamiento local en memoria sin errores de red.';
     this.esExitoBackend = true;
     setTimeout(() => {
       window.location.reload();

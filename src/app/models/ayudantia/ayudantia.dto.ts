@@ -52,6 +52,13 @@ export interface InformeMensualRequestDto {
   ayudantiaId: number;
   mes: number;
   anio: number;
+  numeroResolucion?: string;
+  tipoInforme?: string;
+  horasTotales?: number;
+  diasPorSemana?: number;
+  modalidad?: string;
+  temasImpartidos?: string;
+  anexos?: any[];
 }
 
 export interface HistorialAyudantiaDto {

@@ -29,6 +29,13 @@ export interface InformeMensualRequestDto {
   ayudantiaId: number;
   mes: number;
   anio: number;
+  numeroResolucion?: string;
+  tipoInforme?: string;
+  horasTotales?: number;
+  diasPorSemana?: number;
+  modalidad?: string;
+  temasImpartidos?: string;
+  anexos?: any[];
 }
 
 export interface HistorialAyudantiaDto {
@@ -197,7 +204,21 @@ export class EstudianteService {
       Mes: Number(request.mes),
       mes: Number(request.mes),
       Anio: Number(request.anio),
-      anio: Number(request.anio)
+      anio: Number(request.anio),
+      NumeroResolucion: request.numeroResolucion,
+      numeroResolucion: request.numeroResolucion,
+      TipoInforme: request.tipoInforme,
+      tipoInforme: request.tipoInforme,
+      HorasTotales: request.horasTotales,
+      horasTotales: request.horasTotales,
+      DiasPorSemana: request.diasPorSemana,
+      diasPorSemana: request.diasPorSemana,
+      Modalidad: request.modalidad,
+      modalidad: request.modalidad,
+      TemasImpartidos: request.temasImpartidos,
+      temasImpartidos: request.temasImpartidos,
+      Anexos: request.anexos,
+      anexos: request.anexos
     };
     return this.http.post(`${this.apiUrl}/ayudantias/informe-mensual`, payload).pipe(
       catchError(() => of({ success: true, mensaje: 'Informe generado exitosamente.' }))
