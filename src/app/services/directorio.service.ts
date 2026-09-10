@@ -39,7 +39,7 @@ export class DirectorioService {
   public directorio$ = this.directorioSubject.asObservable();
 
   private get apiUrl() {
-    return `${getApiBase()}/api/estudiantes`;
+    return `${getApiBase()}/api/Estudiante`;
   }
 
   private loadStorage(): EstudianteDirectorioDto[] {

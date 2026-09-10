@@ -6,7 +6,9 @@ import { getApiBase } from '../api';
 
 export interface EstudianteMateria {
   id: number;
+  estudianteId?: number;
   nombre: string;
+  apellido?: string;
   correo?: string;
   username?: string;
   nota?: number;
@@ -940,10 +942,10 @@ export class MateriaService {
     this.saveStorage(this.STORAGE_MATERIAS, materias);
   }
 
-  eliminarEstudianteDeMateria(materiaId: number, estudianteId: number): void {
+  eliminarEstudianteDeMateria(materiaOrClaseId: number, estudianteId: number): void {
     const materias = this.materiasSubject.value.map(m => {
-      if (Number(m.id) === Number(materiaId)) {
-        const list = (m.estudiantes || []).filter(e => Number(e.id) !== Number(estudianteId));
+      if (Number(m.id) === Number(materiaOrClaseId) || Number(m.claseId) === Number(materiaOrClaseId)) {
+        const list = (m.estudiantes || []).filter(e => Number(e.id) !== Number(estudianteId) && Number((e as any).estudianteId) !== Number(estudianteId));
         return { ...m, estudiantes: list };
       }
       return m;
