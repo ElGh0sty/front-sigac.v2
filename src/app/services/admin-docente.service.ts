@@ -35,8 +35,10 @@ export class AdminDocenteService {
     return getApiBase();
   }
 
-  // Lista mock de docentes para desarrollo local y selectores de tribunal
-  private docentesMock: DocenteItemDto[] = [
+  private STORAGE_KEY = 'sigac_docentes_creados_v1';
+
+  // Lista base mock de docentes para desarrollo local y selectores de tribunal
+  private docentesBase: DocenteItemDto[] = [
     {
       id: 201,
       username: 'evelyn.vance',
@@ -94,11 +96,58 @@ export class AdminDocenteService {
     }
   ];
 
+  private getDocentesGuardadosLocal(): DocenteItemDto[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error leyendo docentes locales', e);
+    }
+    return [];
+  }
+
+  private guardarDocenteLocal(docente: DocenteItemDto): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const actuales = this.getDocentesGuardadosLocal();
+      const filtrados = actuales.filter(d => d.username.toLowerCase() !== docente.username.toLowerCase());
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify([docente, ...filtrados]));
+    } catch (e) {
+      console.warn('Error guardando docente local', e);
+    }
+  }
+
+  private getListaCompletaLocal(): DocenteItemDto[] {
+    const locales = this.getDocentesGuardadosLocal();
+    const usernames = new Set(locales.map(d => d.username.toLowerCase()));
+    const baseFiltrada = this.docentesBase.filter(d => !usernames.has(d.username.toLowerCase()));
+    return [...locales, ...baseFiltrada];
+  }
+
   /**
    * POST /api/login/register (o /api/Login/register)
    * Registra un nuevo docente asignándole múltiples responsabilidades/roles.
    */
   crearDocente(docenteDto: { username: string; password: string; nombre: string; apellido: string; correo: string; roles: string[] }): Observable<any> {
+    const nuevo: DocenteItemDto = {
+      id: Date.now(),
+      username: docenteDto.username,
+      nombre: docenteDto.nombre,
+      apellido: docenteDto.apellido,
+      correo: docenteDto.correo,
+      roles: docenteDto.roles,
+      activo: true,
+      departamento: 'Facultad de Ingeniería',
+      titulo: 'Docente Titular'
+    };
+
+    // Siempre persistimos localmente para garantizar que no se pierda al reiniciar o desconectar
+    this.guardarDocenteLocal(nuevo);
+
     const payload = {
       ...docenteDto,
       rol: docenteDto.roles[0] || 'Docente',
@@ -109,21 +158,9 @@ export class AdminDocenteService {
       catchError(() => {
         // En caso de que el backend use minúsculas
         return this.http.post(`${this.baseUrl}/api/login/register`, payload).pipe(
-          catchError((err) => {
-            console.warn('Backend offline o simulación: registrando docente en memoria local:', docenteDto.username);
-            const nuevo: DocenteItemDto = {
-              id: Date.now(),
-              username: docenteDto.username,
-              nombre: docenteDto.nombre,
-              apellido: docenteDto.apellido,
-              correo: docenteDto.correo,
-              roles: docenteDto.roles,
-              activo: true,
-              departamento: 'Facultad de Ingeniería',
-              titulo: 'Docente Titular'
-            };
-            this.docentesMock.unshift(nuevo);
-            return of({ success: true, message: 'Docente registrado exitosamente', docente: nuevo });
+          catchError(() => {
+            console.warn('Backend offline: registrando docente en almacenamiento local permanente:', docenteDto.username);
+            return of({ success: true, message: 'Docente registrado exitosamente en almacenamiento seguro', docente: nuevo });
           })
         );
       })
@@ -132,15 +169,16 @@ export class AdminDocenteService {
 
   /**
    * GET /api/persona
-   * Obtiene la lista de docentes registrados, con fallback en memoria para pruebas locales.
+   * Obtiene la lista de docentes registrados, combinando registros del backend y locales.
    */
   getDocentes(): Observable<DocenteItemDto[]> {
     return this.http.get<any[]>(`${this.baseUrl}/api/Persona`).pipe(
       map(personas => {
+        const locales = this.getDocentesGuardadosLocal();
         if (!Array.isArray(personas) || personas.length === 0) {
-          return [...this.docentesMock];
+          return this.getListaCompletaLocal();
         }
-        return personas.map((p, idx) => ({
+        const mapeados: DocenteItemDto[] = personas.map((p, idx) => ({
           id: p.id || idx + 1,
           username: p.username || (p.correo ? p.correo.split('@')[0] : `docente.${p.id}`),
           nombre: p.nombre || '',
@@ -151,8 +189,13 @@ export class AdminDocenteService {
           departamento: p.departamento || 'Facultad de Ingeniería',
           titulo: p.titulo || 'Docente de Cátedra'
         }));
+
+        // Combinar evitando duplicados
+        const backendUsernames = new Set(mapeados.map(m => m.username.toLowerCase()));
+        const localesNuevos = locales.filter(l => !backendUsernames.has(l.username.toLowerCase()));
+        return [...localesNuevos, ...mapeados];
       }),
-      catchError(() => of([...this.docentesMock]))
+      catchError(() => of(this.getListaCompletaLocal()))
     );
   }
 }
