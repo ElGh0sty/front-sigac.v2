@@ -661,7 +661,7 @@
                 </span>
               </div>
               <div class="max-h-48 overflow-y-auto divide-y divide-indigo-100 text-xs">
-                @for (item of estudiantesParseados; track item.correo) {
+                @for (item of estudiantesParseados; track (item.correo + '_' + $index)) {
                   <div class="py-1.5 flex items-center justify-between text-indigo-900 font-medium">
                     <span>{{ item.nombre }} ({{ item.correo }})</span>
                     <span class="font-mono text-[11px] text-indigo-600">{{ item.matricula }}</span>

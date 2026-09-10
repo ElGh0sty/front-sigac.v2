@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subscription } from 'rxjs';
+import { Subscription, of, catchError } from 'rxjs';
 import { getApiBase } from '../../../api';
 import { MateriaDto, MateriaService, EstudianteMateria } from '../../../services/materia.service';
 import { DirectorioService, EstudianteDirectorioDto } from '../../../services/directorio.service';
@@ -98,24 +98,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
   comunicadoAsunto: string = '';
   comunicadoMensaje: string = '';
   comunicadoPrioridad: 'normal' | 'urgente' = 'normal';
-  historialComunicados: ComunicadoAula[] = [
-    {
-      id: 1,
-      fecha: '28 Ago 2026',
-      asunto: 'Publicación de Rúbrica para Taller #4',
-      mensaje: 'Estimados estudiantes, se ha publicado en recursos el archivo guía con los criterios de evaluación.',
-      destinatarios: 'Todo el Curso (24 alumnos)',
-      prioridad: 'normal'
-    },
-    {
-      id: 2,
-      fecha: '02 Sep 2026',
-      asunto: 'Convocatoria a Tutoría Extraordinaria',
-      mensaje: 'Se convoca a los estudiantes con pendientes en integrales múltiples a sesión de refuerzo el jueves 16h00.',
-      destinatarios: 'Alumnos en Seguimiento Académico (3 alumnos)',
-      prioridad: 'urgente'
-    }
-  ];
+  historialComunicados: ComunicadoAula[] = [];
 
   // Notificaciones visuales
   isLoading: boolean = false;
@@ -159,6 +142,18 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
         }
       }
     });
+
+    this.route.queryParams.subscribe(q => {
+      if (q['claseId']) {
+        const cId = Number(q['claseId']);
+        const found = this.materias.find(m => Number(m.claseId) === cId || Number(m.id) === cId);
+        if (found) {
+          this.seleccionarMateria(found.id);
+        }
+      } else if (q['materiaId']) {
+        this.seleccionarMateria(Number(q['materiaId']));
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -168,7 +163,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
   seleccionarMateria(materiaId: number) {
     this.materiaSeleccionadaId = Number(materiaId);
-    const mat = this.materias.find(m => Number(m.id) === this.materiaSeleccionadaId);
+    const mat = this.materias.find(m => Number(m.id) === this.materiaSeleccionadaId || Number(m.claseId) === this.materiaSeleccionadaId);
     if (mat) {
       this.materiaSeleccionada = mat;
       this.estudiantes = mat.estudiantes ? [...mat.estudiantes] : [];
@@ -176,6 +171,78 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
       this.materiaSeleccionada = null;
       this.estudiantes = [];
     }
+    this.cargarEstudiantes();
+  }
+
+  get claseActivaId(): number {
+    return this.materiaSeleccionada?.claseId || this.materiaSeleccionada?.id || this.materiaSeleccionadaId || 0;
+  }
+
+  cargarEstudiantes(claseIdParam?: number) {
+    const cid = claseIdParam || this.claseActivaId;
+    if (!cid) {
+      this.estudiantes = [];
+      return;
+    }
+
+    const urlClase = `${getApiBase()}/api/Clase/${cid}/estudiantes`;
+    const urlDocente = `${getApiBase()}/api/Docente/clases/${cid}/estudiantes`;
+
+    this.http.get<any>(urlClase).pipe(
+      catchError(() => this.http.get<any>(urlDocente)),
+      catchError(() => {
+        const mat = this.materias.find(m => Number(m.id) === Number(cid) || Number(m.claseId) === Number(cid));
+        return of(mat?.estudiantes || []);
+      })
+    ).subscribe({
+      next: (data: any) => {
+        let rawList: any[] = [];
+        if (Array.isArray(data)) {
+          rawList = data;
+        } else if (data && Array.isArray(data.estudiantes)) {
+          rawList = data.estudiantes;
+        } else if (data && Array.isArray(data.items)) {
+          rawList = data.items;
+        }
+
+        const idMap = new Map<number, EstudianteMateria>();
+        rawList.forEach((item: any, idx: number) => {
+          const id = Number(item.id || item.estudianteId || idx + 1);
+          const nombreCompleto = item.nombre
+            ? (item.apellido ? `${item.nombre} ${item.apellido}`.trim() : item.nombre.trim())
+            : (item.username || `Estudiante ${id}`);
+
+          if (!idMap.has(id)) {
+            idMap.set(id, {
+              id: id,
+              estudianteId: id,
+              nombre: nombreCompleto,
+              apellido: item.apellido || '',
+              correo: item.correo || item.email || '',
+              username: item.username || (item.correo ? item.correo.split('@')[0] : `user.${id}`),
+              cedula: item.cedula || '',
+              matricula: item.matricula || '',
+              carrera: item.carrera || 'Ingeniería de Software',
+              telefono: item.telefono || '',
+              nota: item.nota !== undefined ? Number(item.nota) : 4.5,
+              asistencia: item.asistencia !== undefined ? Number(item.asistencia) : 100,
+              estado: item.estado || 'Regular',
+              tareasEntregadas: item.tareasEntregadas ?? 0,
+              totalTareas: item.totalTareas ?? 0,
+              observaciones: Array.isArray(item.observaciones) ? item.observaciones : []
+            });
+          }
+        });
+
+        this.estudiantes = Array.from(idMap.values());
+        if (this.materiaSeleccionada) {
+          this.materiaSeleccionada.estudiantes = this.estudiantes;
+        }
+      },
+      error: () => {
+        this.estudiantes = [];
+      }
+    });
   }
 
   // ==================== MÉTRICAS DEL AULA ====================
@@ -401,16 +468,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
         estado: 'Regular'
       };
 
-      // 1. Agregar a la lista visual de estudiantes de la vista de clase
-      this.estudiantes = [estudianteFinal, ...this.estudiantes.filter(e => Number(e.id) !== idAsignado)];
-      if (this.materiaSeleccionada) {
-        this.materiaSeleccionada.estudiantes = this.estudiantes;
-      }
-
-      // 2. Persistir en materiaService
-      this.materiaService.agregarEstudianteDirecto(this.materiaSeleccionadaId, estudianteFinal);
-
-      // 3. Sincronizar en el Directorio General localmente (sin emitir GET /api/estudiantes)
+      // 1. Sincronizar en el Directorio General localmente (sin emitir GET /api/estudiantes)
       this.directorioService.agregarEstudiante({
         id: idAsignado,
         nombre: estudianteFinal.nombre,
@@ -423,7 +481,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
         estado: 'Regular'
       });
 
-      // 4. Notificación de Credenciales en Pantalla
+      // 2. Notificación de Credenciales en Pantalla
       const notifMsg = `Estudiante registrado. Usuario: ${username} | Clave Temporal: ${tempPassword}`;
       this.credencialesNotificacion = {
         mostrar: true,
@@ -435,7 +493,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
       this.mostrarExito(`Estudiante dado de alta y matriculado exitosamente. Notificación con credenciales enviada a ${correo}.`);
 
-      // 5. Resetear formulario y volver a pestaña de nómina
+      // 3. Resetear formulario y volver a pestaña de nómina
       this.nuevoEstudiante = {
         nombre: '',
         apellido: '',
@@ -449,6 +507,9 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
         estado: 'Regular'
       };
       this.tabActiva = 'nomina';
+
+      // 4. Refrescar lista fidedigna del backend sin duplicar elementos manualmente
+      this.cargarEstudiantes();
     };
 
     // Petición POST a /api/Clase/{claseId}/estudiantes con fallback a /api/Docente/clases/{claseId}/estudiantes
@@ -550,14 +611,8 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
     const aplicarEliminacionVisual = () => {
       this.isLoading = false;
-      // Eliminar el elemento de la lista visual tras recibir respuesta de éxito
-      this.estudiantes = this.estudiantes.filter(e =>
-        Number(e.id) !== estudianteId && Number((e as any).estudianteId) !== estudianteId
-      );
-      if (this.materiaSeleccionada) {
-        this.materiaSeleccionada.estudiantes = this.estudiantes;
-      }
       this.materiaService.eliminarEstudianteDeMateria(this.materiaSeleccionadaId, estudianteId);
+      this.cargarEstudiantes();
       this.mostrarExito('Estudiante eliminado de la cátedra exitosamente.');
     };
 
@@ -694,20 +749,14 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
     this.http.post(`${getApiBase()}/api/Clase/${claseId}/estudiantes`, body).subscribe({
       next: () => {
         this.isLoading = false;
-        this.estudiantes = [estudianteDir, ...this.estudiantes];
-        if (this.materiaSeleccionada) {
-          this.materiaSeleccionada.estudiantes = this.estudiantes;
-        }
         this.materiaService.agregarEstudianteDirecto(this.materiaSeleccionadaId, estudianteDir);
+        this.cargarEstudiantes();
         this.mostrarExito(`Estudiante ${estudianteDir.nombre} añadido al aula.`);
       },
       error: () => {
         this.isLoading = false;
-        this.estudiantes = [estudianteDir, ...this.estudiantes];
-        if (this.materiaSeleccionada) {
-          this.materiaSeleccionada.estudiantes = this.estudiantes;
-        }
         this.materiaService.agregarEstudianteDirecto(this.materiaSeleccionadaId, estudianteDir);
+        this.cargarEstudiantes();
         this.mostrarExito(`Estudiante ${estudianteDir.nombre} añadido al aula.`);
       }
     });

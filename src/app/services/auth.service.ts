@@ -66,6 +66,9 @@ export class AuthService {
   }
 
   login(credentials: LoginDto): Observable<UserDto> {
+    // Limpiar datos residuales de sesiones previas para garantizar integridad
+    this.limpiarDatosResidualesSesion();
+
     const rawId = (credentials.username || credentials.email || credentials.correo || '').trim();
     const isEmail = rawId.includes('@');
 
@@ -319,6 +322,53 @@ export class AuthService {
     localStorage.removeItem('username');
     localStorage.removeItem('userId');
     localStorage.removeItem('estudianteId');
+    localStorage.removeItem('nombre');
+    localStorage.removeItem('apellido');
+    localStorage.removeItem('correo');
+    this.limpiarDatosResidualesSesion();
+  }
+
+  /**
+   * Limpia el localStorage de datos residuales o mocks de sesiones anteriores
+   */
+  limpiarDatosResidualesSesion(): void {
+    if (typeof window === 'undefined') return;
+    const llavesResiduales = [
+      'sigac_materias_v2',
+      'sigac_estudiante_materias_real',
+      'sigac_recursos_v2',
+      'sigac_actividades_v2',
+      'sigac_asistencias_v2',
+      'sigac_temas_v2',
+      'sigac_clases_v2',
+      'sigac_sesiones_v2',
+      'sigac_planificaciones_v2',
+      'sigac_ocupaciones_v2',
+      'sigac_postulaciones_v2',
+      'sigac_bitacoras_v2',
+      'sigac_docente_clases_v2'
+    ];
+
+    llavesResiduales.forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('sigac_') ||
+          key.startsWith('materias_') ||
+          key.startsWith('recursos_') ||
+          key.startsWith('actividades_') ||
+          key.startsWith('asistencias_')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
   }
 
   getToken(): string | null {

@@ -49,40 +49,9 @@ export interface HistorialAyudantiaDto {
   nombreEstudiante?: string;
 }
 
-const HISTORIAL_DEFAULT: HistorialAyudantiaDto[] = [
-  {
-    ayudantiaId: 1,
-    estadoAyudantia: 'Asignada',
-    catedraId: 101,
-    nombreCatedra: 'Cálculo Avanzado',
-    semestreCatedra: '2026-2',
-    docenteCatedra: 'Dra. Evelyn Vance',
-    estudianteId: 1,
-    nombreEstudiante: 'Alejandro García'
-  },
-  {
-    ayudantiaId: 2,
-    estadoAyudantia: 'Pendiente',
-    catedraId: 102,
-    nombreCatedra: 'Mecánica Cuántica',
-    semestreCatedra: '2026-2',
-    docenteCatedra: 'Dr. Marcus Thorne',
-    estudianteId: 2,
-    nombreEstudiante: 'María López'
-  }
-];
+const HISTORIAL_DEFAULT: HistorialAyudantiaDto[] = [];
 
-const BITACORAS_DEFAULT: BitacoraItemDto[] = [
-  {
-    id: 1,
-    ayudantiaId: 1,
-    nombreAyudante: 'Alejandro García',
-    nombreCatedra: 'Cálculo Avanzado',
-    actividadesRealizadas: 'Resolución de dudas sobre integrales dobles y preparación de guía de ejercicios para el grupo A.',
-    evidenciaUrl: 'https://ejemplo.edu/evidencias/guia_ejercicios.pdf',
-    fecha: '2026-08-24'
-  }
-];
+const BITACORAS_DEFAULT: BitacoraItemDto[] = [];
 
 @Injectable({
   providedIn: 'root'
@@ -110,7 +79,7 @@ export class EstudianteService {
       const stored = localStorage.getItem(key);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed as unknown as T;
         }
       }

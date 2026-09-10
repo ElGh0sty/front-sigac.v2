@@ -59,119 +59,9 @@ export interface HorarioOcupadoAlumnoDto {
   carrera?: string;
 }
 
-const PLANIFICACIONES_DEFAULT: Record<number, ActividadAyudantiaDto[]> = {
-  1: [
-    {
-      id: 1,
-      ayudantiaId: 1,
-      semana: 1,
-      tema: 'Derivadas Parciales y Límites Multivariables',
-      descripcion: 'Sesión de resolución guiada de problemas de la Guía 1. Enfatizar la interpretación geométrica del plano tangente.',
-      fechaPlanificada: '2026-09-08',
-      directrices: 'Resolver los ejercicios pares del 2 al 16. Responder consultas puntuales de estudiantes con dudas previas.',
-      recursosSugeridos: 'Guía de ejercicios de cálculo vectorial y simulador 3D',
-      completada: true
-    },
-    {
-      id: 2,
-      ayudantiaId: 1,
-      semana: 2,
-      tema: 'Integrales Dobles e Integración por Partes',
-      descripcion: 'Taller práctico de cálculo de áreas y volúmenes mediante integrales dobles sobre regiones generales.',
-      fechaPlanificada: '2026-09-15',
-      directrices: 'Explicar el cambio de orden de integración. Dejar 3 ejercicios modelo para trabajo en parejas en clase.',
-      recursosSugeridos: 'Folleto de fórmulas de integración',
-      completada: false
-    },
-    {
-      id: 3,
-      ayudantiaId: 1,
-      semana: 3,
-      tema: 'Coordenadas Cilíndricas y Esféricas',
-      descripcion: 'Explicación del Jacobiano de transformación y aplicaciones en simetrías esféricas.',
-      fechaPlanificada: '2026-09-22',
-      directrices: 'Preparar a los estudiantes para el Primer Examen Parcial.',
-      recursosSugeridos: 'Problemas tipo examen resueltos',
-      completada: false
-    }
-  ],
-  2: [
-    {
-      id: 4,
-      ayudantiaId: 2,
-      semana: 1,
-      tema: 'Dualidad Onda-Partícula y Experimento de la Doble Rendija',
-      descripcion: 'Demostración de patrones de interferencia y cálculo de longitud de onda de De Broglie.',
-      fechaPlanificada: '2026-09-10',
-      directrices: 'Realizar simulación computacional de difracción.',
-      recursosSugeridos: 'Simulador PhET de Mecánica Cuántica',
-      completada: true
-    }
-  ]
-};
+const PLANIFICACIONES_DEFAULT: Record<number, ActividadAyudantiaDto[]> = {};
 
-const OCUPACIONES_DEFAULT: HorarioOcupadoAlumnoDto[] = [
-  {
-    id: 1,
-    claseId: 1,
-    dia: 'Lunes',
-    horaInicio: '08:00',
-    horaFin: '10:00',
-    materiaOcupada: 'Física Clásica y Electromagnetismo',
-    tipo: 'Cátedra Regular',
-    carrera: 'Ingeniería de Software'
-  },
-  {
-    id: 2,
-    claseId: 1,
-    dia: 'Martes',
-    horaInicio: '10:00',
-    horaFin: '12:00',
-    materiaOcupada: 'Programación Orientada a Objetos',
-    tipo: 'Laboratorio de Cómputo',
-    carrera: 'Ingeniería de Software'
-  },
-  {
-    id: 3,
-    claseId: 1,
-    dia: 'Martes',
-    horaInicio: '14:00',
-    horaFin: '16:00',
-    materiaOcupada: 'Bases de Datos Relacionales',
-    tipo: 'Cátedra Regular',
-    carrera: 'Ingeniería de Software'
-  },
-  {
-    id: 4,
-    claseId: 1,
-    dia: 'Miércoles',
-    horaInicio: '08:00',
-    horaFin: '10:00',
-    materiaOcupada: 'Mecánica Cuántica / Ciencias Básicas',
-    tipo: 'Cátedra Regular',
-    carrera: 'Ingeniería de Software'
-  },
-  {
-    id: 5,
-    claseId: 1,
-    dia: 'Jueves',
-    horaInicio: '10:00',
-    horaFin: '12:00',
-    materiaOcupada: 'Arquitectura de Software y Cloud',
-    tipo: 'Cátedra Teórica',
-    carrera: 'Ingeniería de Software'
-  },
-  {
-    id: 6,
-    claseId: 1,
-    dia: 'Viernes',
-    horaInicio: '14:00',
-    horaFin: '16:00',
-    materiaOcupada: 'Redes Neuronales e Inteligencia Artificial',
-    tipo: 'Laboratorio Avanzado',
-    carrera: 'Ingeniería de Software'
-  }
-];
+const OCUPACIONES_DEFAULT: HorarioOcupadoAlumnoDto[] = [];
 
 @Injectable({
   providedIn: 'root'
@@ -297,29 +187,22 @@ export class DocenteService {
   }
 
   monitorearAyudantia(ayudantiaId: number): Observable<MonitoreoAyudantiaDto> {
-    const planLocal = this.planificacionesSubject.value[ayudantiaId] || PLANIFICACIONES_DEFAULT[ayudantiaId] || [];
+    const planLocal = this.planificacionesSubject.value[ayudantiaId] || [];
 
     return this.http.get<MonitoreoAyudantiaDto>(`${this.apiUrl}/ayudantias/${ayudantiaId}/monitoreo`).pipe(
       map(backendRes => {
-        if (backendRes && Array.isArray(backendRes.planificacion) && backendRes.planificacion.length > 0) {
-          return backendRes;
-        }
         return {
           ayudantiaId,
-          nombreAyudante: backendRes?.nombreAyudante || 'Alejandro García',
-          planificacion: planLocal,
-          bitacoras: backendRes?.bitacoras || [
-            { id: 1, fecha: '2026-08-28', actividadesRealizadas: 'Resolución de problemas de derivadas e integrales múltiples para el grupo A.', evidenciaUrl: 'https://ejemplo.edu/bitacora1.pdf' }
-          ]
+          nombreAyudante: backendRes?.nombreAyudante || 'Ayudante de Cátedra',
+          planificacion: backendRes?.planificacion || planLocal,
+          bitacoras: backendRes?.bitacoras || []
         };
       }),
       catchError(() => of({
         ayudantiaId,
-        nombreAyudante: ayudantiaId === 1 ? 'Alejandro García' : 'María López',
+        nombreAyudante: 'Ayudante de Cátedra',
         planificacion: planLocal,
-        bitacoras: [
-          { id: 1, fecha: '2026-08-28', actividadesRealizadas: 'Resolución de problemas de derivadas e integrales múltiples para el grupo A.', evidenciaUrl: 'https://ejemplo.edu/bitacora1.pdf' }
-        ]
+        bitacoras: []
       }))
     );
   }

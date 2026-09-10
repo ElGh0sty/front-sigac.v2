@@ -71,69 +71,9 @@ export interface AsistenciaDto {
   presente: boolean;
 }
 
-const CLASES_DEFAULT: ClaseDto[] = [
-  {
-    id: 1,
-    nombre: 'Ingeniería de Software 2026-2',
-    materiaId: 101,
-    materiaIds: [101, 103],
-    docenteId: 1,
-    semestre: '2026-2',
-    descripcion: 'Grupo académico de Ingeniería de Software y Sistemas.',
-    carrera: 'Ingeniería de Software',
-    estudianteIds: [1, 2, 3]
-  },
-  {
-    id: 2,
-    nombre: 'Ciencias Físicas e Ingeniería 2026-1',
-    materiaId: 102,
-    materiaIds: [102],
-    docenteId: 2,
-    semestre: '2026-1',
-    descripcion: 'Cohorte de ciencias básicas y física aplicada.',
-    carrera: 'Física / Ingeniería',
-    estudianteIds: [3, 4]
-  },
-  {
-    id: 3,
-    nombre: 'Ciencias de la Computación 2026-2',
-    materiaId: 103,
-    materiaIds: [103],
-    docenteId: 3,
-    semestre: '2026-2',
-    descripcion: 'Cohorte especializada en Inteligencia Artificial y Algoritmos.',
-    carrera: 'Ciencias de la Computación',
-    estudianteIds: [1, 4]
-  }
-];
+const CLASES_DEFAULT: ClaseDto[] = [];
 
-const SESIONES_DEFAULT: ClaseSesionDto[] = [
-  {
-    id: 1,
-    materiaId: 101,
-    claseId: 1,
-    docenteId: 1,
-    fecha: '2026-08-25',
-    horaInicio: '08:00',
-    horaFin: '10:00',
-    tipoClase: 'Presencial',
-    edificioPresencial: 'Edificio Central A',
-    aulaPresencial: 'Aula 302',
-    pisoPresencial: 'Piso 3'
-  },
-  {
-    id: 2,
-    materiaId: 101,
-    claseId: 1,
-    docenteId: 1,
-    fecha: '2026-08-27',
-    horaInicio: '10:00',
-    horaFin: '12:00',
-    tipoClase: 'Virtual',
-    linkVirtual: 'https://meet.google.com/abc-defg-hij',
-    aplicacionVirtual: 'Google Meet'
-  }
-];
+const SESIONES_DEFAULT: ClaseSesionDto[] = [];
 
 @Injectable({
   providedIn: 'root'

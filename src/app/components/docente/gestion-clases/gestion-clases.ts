@@ -88,41 +88,7 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
   horariosOcupadosAlumnos: HorarioOcupadoAlumnoDto[] = [];
 
   // Ayudantes de cátedra
-  ayudantesCatedra: AyudanteCatedraInfo[] = [
-    {
-      id: 1,
-      ayudantiaId: 1,
-      catedraId: 101,
-      nombre: 'Alejandro García Mendoza',
-      correo: 'a.garcia@uteq.edu.ec',
-      estado: 'Asignado / Activo',
-      horasAsignadas: 60,
-      horasCompletadas: 24,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 2,
-      ayudantiaId: 2,
-      catedraId: 102,
-      nombre: 'María López Salazar',
-      correo: 'm.lopez@uteq.edu.ec',
-      estado: 'Asignado / Activo',
-      horasAsignadas: 60,
-      horasCompletadas: 18,
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 3,
-      ayudantiaId: 3,
-      catedraId: 101,
-      nombre: 'Carlos Ruiz Morales',
-      correo: 'c.ruiz@uteq.edu.ec',
-      estado: 'En Proceso de Vinculación',
-      horasAsignadas: 40,
-      horasCompletadas: 8,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-    }
-  ];
+  ayudantesCatedra: AyudanteCatedraInfo[] = [];
 
   ayudanteSeleccionado: AyudanteCatedraInfo | null = null;
   monitoreoAyudanteActual: MonitoreoAyudantiaDto | null = null;
@@ -260,8 +226,10 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Cargar ayudante inicial para sílabo
-    this.seleccionarAyudanteParaSilabo(this.ayudantesCatedra[0]);
+    // Cargar ayudante inicial para sílabo si existe
+    if (this.ayudantesCatedra.length > 0) {
+      this.seleccionarAyudanteParaSilabo(this.ayudantesCatedra[0]);
+    }
   }
 
   ngOnDestroy() {
