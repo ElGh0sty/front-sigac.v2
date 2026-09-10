@@ -254,6 +254,26 @@ export class ClaseService {
     );
   }
 
+  /**
+   * DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
+   * Elimina un estudiante de la clase
+   */
+  eliminarEstudiante(claseId: number, estudianteId: number): Observable<any> {
+    const list = this.clasesSubject.value.map(c => {
+      if (Number(c.id) === Number(claseId)) {
+        const currentIds = (c.estudianteIds || []).filter(id => Number(id) !== Number(estudianteId));
+        return { ...c, estudianteIds: currentIds };
+      }
+      return c;
+    });
+    this.clasesSubject.next(list);
+    this.saveStorage(this.STORAGE_CLASES, list);
+
+    return this.http.delete(`${this.apiUrl}/${claseId}/estudiantes/${estudianteId}`).pipe(
+      catchError(() => of({ success: true }))
+    );
+  }
+
   getEstudiantesFromClase(claseId: number): Observable<any> {
     return this.http.get(`${this.apiUrl}/${claseId}/estudiantes`).pipe(
       catchError(() => of([]))

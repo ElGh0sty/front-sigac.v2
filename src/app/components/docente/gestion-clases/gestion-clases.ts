@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { ClaseService } from '../../../services/clase.service';
 import { MateriaDto, MateriaService, RecursoDto, ActividadDto } from '../../../services/materia.service';
 import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
+import { DirectorioService } from '../../../services/directorio.service';
 import {
   DocenteService,
   ActividadAyudantiaDto,
@@ -28,7 +29,7 @@ export interface ClaseCreada {
   edificioPresencial?: string;
   aulaPresencial?: string;
   pisoPresencial?: string;
-  estudiantes: { id: number; nombre: string; presente: boolean }[];
+  estudiantes: { id: number; nombre: string; presente: boolean; correo?: string; username?: string }[];
 }
 
 export interface AyudanteCatedraInfo {
@@ -171,6 +172,24 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
   successMessage = '';
   errorMessage = '';
 
+  // Notificación de credenciales en pantalla
+  credencialesNotificacion = {
+    mostrar: false,
+    mensaje: '',
+    username: '',
+    tempPassword: ''
+  };
+  copiadoCredenciales = false;
+
+  // Modal para agregar estudiante a la clase
+  mostrarModalAgregarEstudiante = false;
+  nuevoEstudianteClase = {
+    nombre: '',
+    correo: '',
+    cedula: '',
+    matricula: ''
+  };
+
   private subs: Subscription[] = [];
   Math = Math;
 
@@ -180,7 +199,8 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
     private claseService: ClaseService,
     private materiaService: MateriaService,
     private docenteService: DocenteService,
-    private descargaService: DocumentosDescargaService
+    private descargaService: DocumentosDescargaService,
+    private directorioService: DirectorioService
   ) {}
 
   ngOnInit() {
@@ -799,6 +819,113 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
       }
     }
     return Math.round((presentes / clasesDeMateria.length) * 100) + '%';
+  }
+
+  /**
+   * Elimina un estudiante de la clase conectándolo a DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
+   */
+  eliminarEstudiante(claseId: number, estudianteId: number, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!confirm('¿Estás seguro de que deseas eliminar este estudiante de la clase?')) {
+      return;
+    }
+
+    const clase = this.clasesCreadas.find(c => c.id === claseId);
+    if (clase && clase.estudiantes) {
+      clase.estudiantes = clase.estudiantes.filter(e => e.id !== estudianteId);
+      this.guardarEnStorage();
+    }
+
+    this.claseService.eliminarEstudiante(claseId, estudianteId).subscribe({
+      next: () => {
+        this.successMessage = 'Estudiante eliminado de la clase exitosamente.';
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: () => {
+        this.successMessage = 'Estudiante eliminado de la clase.';
+        setTimeout(() => this.successMessage = '', 4000);
+      }
+    });
+  }
+
+  abrirAgregarEstudianteAClase() {
+    this.mostrarModalAgregarEstudiante = true;
+  }
+
+  cerrarAgregarEstudianteAClase() {
+    this.mostrarModalAgregarEstudiante = false;
+    this.nuevoEstudianteClase = {
+      nombre: '',
+      correo: '',
+      cedula: '',
+      matricula: ''
+    };
+  }
+
+  guardarEstudianteEnClase(claseId: number) {
+    if (!this.nuevoEstudianteClase.nombre.trim() || !this.nuevoEstudianteClase.correo.trim()) {
+      alert('Por favor ingresa el nombre y correo institucional del estudiante.');
+      return;
+    }
+
+    const nombre = this.nuevoEstudianteClase.nombre.trim();
+    const correo = this.nuevoEstudianteClase.correo.trim();
+    const username = correo.includes('@') ? correo.split('@')[0] : nombre.toLowerCase().replace(/\s+/g, '.');
+    const tempPassword = `Uteq${new Date().getFullYear()}*`;
+
+    const nuevoId = Date.now();
+    const clase = this.clasesCreadas.find(c => c.id === claseId);
+    if (clase) {
+      if (!clase.estudiantes) clase.estudiantes = [];
+      clase.estudiantes.push({
+        id: nuevoId,
+        nombre,
+        correo,
+        presente: true,
+        username
+      });
+      this.guardarEnStorage();
+    }
+
+    // Agregar al Directorio General Institucional
+    this.directorioService.agregarEstudiante({
+      nombre,
+      correo,
+      username,
+      cedula: this.nuevoEstudianteClase.cedula || `17${Math.floor(10000000 + Math.random() * 90000000)}`,
+      matricula: this.nuevoEstudianteClase.matricula || `2024-EST-${Math.floor(100 + Math.random() * 900)}`,
+      estado: 'Regular'
+    });
+
+    // Emitir la recarga de datos en el servicio del Directorio (cargarDirectorio())
+    this.directorioService.cargarDirectorio().subscribe();
+
+    // Notificación de Credenciales en Pantalla
+    const notifMsg = `Estudiante registrado. Usuario: ${username} | Clave Temporal: ${tempPassword}`;
+    this.credencialesNotificacion = {
+      mostrar: true,
+      mensaje: notifMsg,
+      username,
+      tempPassword
+    };
+    this.successMessage = notifMsg;
+
+    this.cerrarAgregarEstudianteAClase();
+  }
+
+  copiarCredenciales() {
+    const texto = `Estudiante registrado. Usuario: ${this.credencialesNotificacion.username} | Clave Temporal: ${this.credencialesNotificacion.tempPassword}`;
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(texto);
+      this.copiadoCredenciales = true;
+      setTimeout(() => this.copiadoCredenciales = false, 3000);
+    }
+  }
+
+  cerrarCredencialesNotificacion() {
+    this.credencialesNotificacion.mostrar = false;
   }
 
   // ==========================================

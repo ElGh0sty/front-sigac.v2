@@ -36,6 +36,39 @@
   </div>
 
   <!-- ALERTAS DE ÉXITO O ERROR -->
+  @if (credencialesNotificacion.mostrar) {
+    <div class="p-4 bg-slate-900 text-white rounded-2xl border border-indigo-500/40 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+      <div class="flex items-start md:items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/30 text-amber-300 flex items-center justify-center shrink-0 border border-indigo-500/40">
+          <i class="fa-solid fa-key text-base"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/60">Credenciales de Acceso Generadas</span>
+            <span class="text-[10px] text-emerald-400 font-medium">Acceso Inmediato para Presentación</span>
+          </div>
+          <p class="text-xs md:text-sm font-bold text-white font-mono mt-1 select-all">
+            Estudiante registrado. Usuario: <span class="text-amber-300">{{ credencialesNotificacion.username }}</span> | Clave Temporal: <span class="text-emerald-300">{{ credencialesNotificacion.tempPassword }}</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-end md:self-auto shrink-0">
+        <button type="button"
+                (click)="copiarCredenciales()"
+                class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
+          <i class="fa-regular fa-copy text-xs"></i>
+          <span>{{ copiado ? '¡Copiado!' : 'Copiar Credenciales' }}</span>
+        </button>
+        <button type="button"
+                (click)="cerrarCredencialesNotificacion()"
+                class="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                title="Cerrar notificación">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+    </div>
+  }
+
   @if (successMessage) {
     <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium rounded-xl flex items-center justify-between gap-3 shadow-xs animate-fade-in">
       <div class="flex items-center gap-2.5">
@@ -398,6 +431,13 @@
                                 title="Enviar Alerta Pedagógica / Citar a Tutoría">
                           <i class="fa-solid fa-bell text-xs"></i>
                         </button>
+
+                        <!-- Eliminar Estudiante (DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}) -->
+                        <button (click)="eliminarEstudiante(materiaSeleccionadaId, est.id)"
+                                class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
+                                title="Eliminar estudiante de la cátedra">
+                          <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -476,6 +516,10 @@
                   <button (click)="abrirAlertaEstudiante(est, $event)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 flex items-center justify-center transition-colors"
                           title="Enviar Alerta Pedagógica / Citar a Tutoría">
                     <i class="fa-solid fa-bell text-xs"></i>
+                  </button>
+                  <button (click)="eliminarEstudiante(materiaSeleccionadaId, est.id)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
+                          title="Eliminar de la clase">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
                   </button>
                 </div>
               </div>
@@ -629,9 +673,18 @@
       <!-- 2.3 DIRECTORIO GENERAL -->
       @if (subTabMatricula === 'directorio') {
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <div>
-            <h3 class="text-sm font-bold text-slate-900 mb-1">Directorio Institucional de Alumnos Disponibles</h3>
-            <p class="text-xs text-slate-500">Selecciona alumnos del padrón general universitario para agregarlos de inmediato a esta cátedra.</p>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 mb-0.5">Directorio Institucional de Alumnos Disponibles</h3>
+              <p class="text-xs text-slate-500">Selecciona alumnos del padrón general universitario para agregarlos de inmediato a esta cátedra o gestionarlos.</p>
+            </div>
+            <button type="button"
+                    (click)="cargarDirectorio()"
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+                    title="Recargar directorio de estudiantes">
+              <i class="fa-solid fa-rotate text-xs"></i>
+              <span>Recargar Directorio</span>
+            </button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -640,12 +693,19 @@
                 <div class="min-w-0">
                   <h4 class="text-xs font-bold text-slate-900 truncate">{{ dir.nombre }}</h4>
                   <p class="text-[11px] text-slate-500 truncate">{{ dir.correo }}</p>
-                  <span class="text-[10px] text-slate-400 font-mono">{{ dir.matricula }}</span>
+                  <span class="text-[10px] text-slate-400 font-mono">{{ dir.matricula || dir.username }}</span>
                 </div>
-                <button (click)="matricularDelDirectorio(dir)"
-                        class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all shrink-0">
-                  <i class="fa-solid fa-plus mr-1"></i> Añadir
-                </button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button (click)="matricularDelDirectorio(dir)"
+                          class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all">
+                    <i class="fa-solid fa-plus mr-1"></i> Añadir
+                  </button>
+                  <button (click)="eliminarEstudianteDelDirectorio(dir.id)"
+                          class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 flex items-center justify-center transition-all"
+                          title="Eliminar del Directorio">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
               </div>
             }
           </div>

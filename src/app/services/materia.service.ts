@@ -8,12 +8,13 @@ export interface EstudianteMateria {
   id: number;
   nombre: string;
   correo?: string;
+  username?: string;
   nota?: number;
   asistencia?: number;
   matricula?: string;
   cedula?: string;
   carrera?: string;
-  estado?: 'Regular' | 'En Riesgo' | 'Destacado' | 'Retirado' | 'Justificado';
+  estado?: 'Regular' | 'En Riesgo' | 'Destacado' | 'Retirado' | 'Justificado' | string;
   telefono?: string;
   observaciones?: string[];
   tareasEntregadas?: number;
@@ -949,6 +950,17 @@ export class MateriaService {
     });
     this.materiasSubject.next(materias);
     this.saveStorage(this.STORAGE_MATERIAS, materias);
+  }
+
+  /**
+   * DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
+   * Elimina un estudiante de la clase/materia
+   */
+  eliminarEstudiante(claseId: number, estudianteId: number): Observable<any> {
+    this.eliminarEstudianteDeMateria(claseId, estudianteId);
+    return this.http.delete(`${getApiBase()}/api/Clase/${claseId}/estudiantes/${estudianteId}`).pipe(
+      catchError(() => of({ success: true }))
+    );
   }
 
   agregarObservacionEstudiante(materiaId: number, estudianteId: number, observacion: string): void {

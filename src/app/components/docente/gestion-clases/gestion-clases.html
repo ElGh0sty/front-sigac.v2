@@ -81,7 +81,40 @@
     </div>
   </div>
 
-  <!-- Mensajes de Notificación -->
+  <!-- Mensajes de Notificación y Credenciales Provisionales -->
+  @if (credencialesNotificacion.mostrar) {
+    <div class="p-4 bg-slate-900 text-white rounded-2xl border border-indigo-500/40 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+      <div class="flex items-start md:items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/30 text-amber-300 flex items-center justify-center shrink-0 border border-indigo-500/40">
+          <i class="fa-solid fa-key text-base"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/60">Credenciales de Acceso Generadas</span>
+            <span class="text-[10px] text-emerald-400 font-medium">Acceso Inmediato para Presentación</span>
+          </div>
+          <p class="text-xs md:text-sm font-bold text-white font-mono mt-1 select-all">
+            Estudiante registrado. Usuario: <span class="text-amber-300">{{ credencialesNotificacion.username }}</span> | Clave Temporal: <span class="text-emerald-300">{{ credencialesNotificacion.tempPassword }}</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-end md:self-auto shrink-0">
+        <button type="button"
+                (click)="copiarCredenciales()"
+                class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
+          <i class="fa-regular fa-copy text-xs"></i>
+          <span>{{ copiadoCredenciales ? '¡Copiado!' : 'Copiar Credenciales' }}</span>
+        </button>
+        <button type="button"
+                (click)="cerrarCredencialesNotificacion()"
+                class="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                title="Cerrar notificación">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+    </div>
+  }
+
   @if (successMessage) {
     <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm animate-fade-in">
       <div class="flex items-center gap-2 font-medium">
@@ -1031,7 +1064,12 @@
           </div>
 
           <!-- Acciones Rápidas en Lote (1-Click) -->
-          <div class="flex items-center gap-1.5 shrink-0">
+          <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <button (click)="abrirAgregarEstudianteAClase()"
+                    class="px-2.5 py-1.5 text-xs font-semibold bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-colors flex items-center gap-1"
+                    title="Añadir estudiante a esta clase">
+              <i class="fa-solid fa-user-plus text-indigo-600"></i> Añadir Estudiante
+            </button>
             <button (click)="marcarTodosAsistencia(clase.id, true)"
                     class="px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors flex items-center gap-1"
                     title="Marcar a todos como presentes">
@@ -1074,13 +1112,25 @@
                   </div>
                 </div>
 
-                <!-- Botón de Alternancia de Asistencia -->
-                <button type="button"
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 flex items-center gap-1.5 shadow-2xs"
-                        [ngClass]="estudiante.presente ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'">
-                  <i class="fa-solid" [ngClass]="estudiante.presente ? 'fa-check' : 'fa-xmark text-slate-400'"></i>
-                  <span>{{ estudiante.presente ? 'Presente' : 'Ausente' }}</span>
-                </button>
+                <!-- Botones de Acción de Estudiante -->
+                <div class="flex items-center gap-1.5 shrink-0" (click)="$event.stopPropagation()">
+                  <!-- Botón de Alternancia de Asistencia -->
+                  <button type="button"
+                          (click)="toggleAsistencia(claseAsistenciaId, estudiante.id)"
+                          class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 flex items-center gap-1.5 shadow-2xs"
+                          [ngClass]="estudiante.presente ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'">
+                    <i class="fa-solid" [ngClass]="estudiante.presente ? 'fa-check' : 'fa-xmark text-slate-400'"></i>
+                    <span>{{ estudiante.presente ? 'Presente' : 'Ausente' }}</span>
+                  </button>
+
+                  <!-- Botón Eliminar (Papelera) - DELETE /api/Clase/{claseId}/estudiantes/{estudianteId} -->
+                  <button type="button"
+                          (click)="eliminarEstudiante(clase.id, estudiante.id, $event)"
+                          class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 flex items-center justify-center transition-colors shrink-0"
+                          title="Eliminar estudiante de la clase">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
               </div>
             } @empty {
               <div class="col-span-1 md:col-span-2 py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -1107,6 +1157,77 @@
 
     </div>
   </div>
+
+  <!-- Sub-Modal: Agregar Estudiante a la Clase -->
+  @if (mostrarModalAgregarEstudiante) {
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-60 p-4" (click)="cerrarAgregarEstudianteAClase()">
+      <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 p-6 space-y-4 animate-scale-in" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
+              <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">Añadir Estudiante a la Clase</h4>
+              <p class="text-[11px] text-slate-500">Se registrará en el aula y en el Directorio Institucional</p>
+            </div>
+          </div>
+          <button (click)="cerrarAgregarEstudianteAClase()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombre y Apellidos *</label>
+            <input type="text"
+                   [(ngModel)]="nuevoEstudianteClase.nombre"
+                   placeholder="Ej: Daniel Mera Santos"
+                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-300 focus:bg-white outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 mb-1">Correo Institucional *</label>
+            <input type="email"
+                   [(ngModel)]="nuevoEstudianteClase.correo"
+                   placeholder="Ej: d.mera@uteq.edu.ec"
+                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-300 focus:bg-white outline-none" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Cédula</label>
+              <input type="text"
+                     [(ngModel)]="nuevoEstudianteClase.cedula"
+                     placeholder="1728394012"
+                     class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-300 focus:bg-white outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Matrícula</label>
+              <input type="text"
+                     [(ngModel)]="nuevoEstudianteClase.matricula"
+                     placeholder="2024-IS-401"
+                     class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-300 focus:bg-white outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button"
+                  (click)="cerrarAgregarEstudianteAClase()"
+                  class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+            Cancelar
+          </button>
+          <button type="button"
+                  (click)="guardarEstudianteEnClase(claseAsistenciaId)"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-check"></i>
+            <span>Registrar y Asignar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 }
 
 <!-- ========================================================================= -->

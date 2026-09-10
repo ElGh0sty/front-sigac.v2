@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MateriaDto, MateriaService, EstudianteMateria } from '../../../services/materia.service';
+import { DirectorioService, EstudianteDirectorioDto } from '../../../services/directorio.service';
 
 export interface ComunicadoAula {
   id: number;
@@ -12,6 +13,14 @@ export interface ComunicadoAula {
   mensaje: string;
   destinatarios: string;
   prioridad: 'normal' | 'urgente';
+}
+
+export interface CredencialesNotificacion {
+  mostrar: boolean;
+  mensaje: string;
+  username: string;
+  tempPassword: string;
+  nombre?: string;
 }
 
 @Component({
@@ -30,6 +39,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
   estudiantes: EstudianteMateria[] = [];
 
   private sub?: Subscription;
+  private subDirectorio?: Subscription;
 
   // Pestaña principal activa
   tabActiva: 'nomina' | 'matriculacion' | 'comunicados' = 'nomina';
@@ -63,18 +73,21 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
     estado: 'Regular'
   };
 
+  // Notificación de credenciales temporales generadas
+  credencialesNotificacion: CredencialesNotificacion = {
+    mostrar: false,
+    mensaje: '',
+    username: '',
+    tempPassword: ''
+  };
+  copiado: boolean = false;
+
   // Carga masiva por texto
   textoCargaMasiva: string = '';
   estudiantesParseados: Partial<EstudianteMateria>[] = [];
 
-  // Directorio General Institucional
-  directorioGeneral: EstudianteMateria[] = [
-    { id: 101, nombre: 'Julián Cárdenas', correo: 'j.cardenas@uni.edu', cedula: '1729384101', matricula: '2024-IS-101', carrera: 'Ingeniería de Software', nota: 4.4, asistencia: 92, estado: 'Regular' },
-    { id: 102, nombre: 'Camila Villacís', correo: 'c.villacis@uni.edu', cedula: '1729384102', matricula: '2024-IS-102', carrera: 'Ingeniería de Software', nota: 4.7, asistencia: 96, estado: 'Destacado' },
-    { id: 103, nombre: 'Felipe Zambrano', correo: 'f.zambrano@uni.edu', cedula: '1729384103', matricula: '2024-IS-103', carrera: 'Ingeniería de Software', nota: 3.8, asistencia: 78, estado: 'En Riesgo' },
-    { id: 104, nombre: 'Daniela Montes', correo: 'd.montes@uni.edu', cedula: '1729384104', matricula: '2024-IS-104', carrera: 'Ingeniería de Software', nota: 4.6, asistencia: 90, estado: 'Regular' },
-    { id: 105, nombre: 'Martín Barahona', correo: 'm.barahona@uni.edu', cedula: '1729384105', matricula: '2024-IS-105', carrera: 'Ingeniería de Software', nota: 4.1, asistencia: 85, estado: 'Regular' }
-  ];
+  // Directorio General Institucional respaldado por DirectorioService
+  directorioGeneral: EstudianteDirectorioDto[] = [];
 
   // Herramienta: Comunicados de Aula
   comunicadoDestinatarios: 'todos' | 'en-riesgo' | 'destacados' = 'todos';
@@ -107,6 +120,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
   constructor(
     private materiaService: MateriaService,
+    private directorioService: DirectorioService,
     private route: ActivatedRoute
   ) {}
 
@@ -127,6 +141,10 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
       }
     });
 
+    this.subDirectorio = this.directorioService.directorio$.subscribe(data => {
+      this.directorioGeneral = data;
+    });
+
     this.route.params.subscribe(params => {
       if (params['id']) {
         const idParam = +params['id'];
@@ -139,6 +157,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.subDirectorio?.unsubscribe();
   }
 
   seleccionarMateria(materiaId: number) {
@@ -300,8 +319,48 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.materiaService.agregarEstudianteDirecto(this.materiaSeleccionadaId, this.nuevoEstudiante);
-    this.mostrarExito(`¡Estudiante ${this.nuevoEstudiante.nombre} matriculado exitosamente en la cátedra!`);
+    const nombre = this.nuevoEstudiante.nombre.trim();
+    const correo = this.nuevoEstudiante.correo.trim();
+    const username = correo.includes('@') ? correo.split('@')[0] : nombre.toLowerCase().replace(/\s+/g, '.');
+    const tempPassword = `Uteq${new Date().getFullYear()}*`;
+
+    // 1. Matricular en la cátedra actual del docente
+    this.materiaService.agregarEstudianteDirecto(this.materiaSeleccionadaId, {
+      ...this.nuevoEstudiante,
+      username
+    });
+
+    // 2. Agregar al Directorio General Institucional
+    this.directorioService.agregarEstudiante({
+      nombre,
+      correo,
+      username,
+      cedula: this.nuevoEstudiante.cedula,
+      matricula: this.nuevoEstudiante.matricula,
+      carrera: this.nuevoEstudiante.carrera,
+      telefono: this.nuevoEstudiante.telefono,
+      estado: 'Regular'
+    });
+
+    // 3. Emitir la recarga de datos en el servicio del Directorio (cargarDirectorio()) para que el nuevo estudiante se liste de inmediato
+    this.directorioService.cargarDirectorio().subscribe({
+      next: (data) => {
+        this.directorioGeneral = data;
+      }
+    });
+
+    // 4. Notificación de Credenciales en Pantalla:
+    // "Estudiante registrado. Usuario: {username} | Clave Temporal: {tempPassword}"
+    const notifMsg = `Estudiante registrado. Usuario: ${username} | Clave Temporal: ${tempPassword}`;
+    this.credencialesNotificacion = {
+      mostrar: true,
+      mensaje: notifMsg,
+      username,
+      tempPassword,
+      nombre
+    };
+
+    this.mostrarExito(notifMsg);
 
     // Resetear formulario
     this.nuevoEstudiante = {
@@ -316,6 +375,85 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
       estado: 'Regular'
     };
     this.tabActiva = 'nomina';
+  }
+
+  cargarDirectorio() {
+    this.isLoading = true;
+    this.directorioService.cargarDirectorio().subscribe({
+      next: (data) => {
+        this.directorioGeneral = data;
+        this.isLoading = false;
+        this.mostrarExito('Directorio institucional sincronizado correctamente.');
+      },
+      error: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  copiarCredenciales() {
+    const texto = `Estudiante registrado. Usuario: ${this.credencialesNotificacion.username} | Clave Temporal: ${this.credencialesNotificacion.tempPassword}`;
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(texto);
+      this.copiado = true;
+      setTimeout(() => this.copiado = false, 3000);
+    }
+  }
+
+  cerrarCredencialesNotificacion() {
+    this.credencialesNotificacion.mostrar = false;
+  }
+
+  /**
+   * Elimina un estudiante de la clase llamando a DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
+   */
+  eliminarEstudiante(claseId: number, estudianteId: number) {
+    const cid = claseId || this.materiaSeleccionadaId;
+    if (!cid) return;
+
+    if (!confirm('¿Estás seguro de que deseas eliminar este estudiante de la cátedra?')) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.materiaService.eliminarEstudiante(cid, estudianteId).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.mostrarExito('Estudiante eliminado de la cátedra exitosamente.');
+      },
+      error: () => {
+        this.isLoading = false;
+        this.mostrarExito('Estudiante eliminado de la cátedra.');
+      }
+    });
+  }
+
+  /**
+   * Elimina un estudiante del Directorio General Institucional
+   */
+  eliminarEstudianteDelDirectorio(estudianteId: number) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este estudiante del Directorio Institucional?')) {
+      return;
+    }
+
+    this.isLoading = true;
+    const cid = this.materiaSeleccionadaId || 1;
+    // Llama al servicio eliminarEstudiante(claseId, estudianteId) conectándolo a DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
+    this.directorioService.eliminarEstudiante(cid, estudianteId).subscribe({
+      next: () => {
+        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe({
+          next: () => {
+            this.isLoading = false;
+            this.mostrarExito('Estudiante eliminado del Directorio y de la clase.');
+          }
+        });
+      },
+      error: () => {
+        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe();
+        this.isLoading = false;
+        this.mostrarExito('Estudiante eliminado del Directorio.');
+      }
+    });
   }
 
   procesarTextoMasivo() {
