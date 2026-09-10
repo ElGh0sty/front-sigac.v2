@@ -45,8 +45,9 @@ export interface MateriaDto {
 export interface CreateMateriaDto {
   nombre: string;
   codigo: string;
-  descripcion?: string;
+  docenteId?: number;
   docenteResponsableId?: number;
+  descripcion?: string;
   creditos?: number;
   claseId?: number;
   claseNombre?: string;
@@ -283,6 +284,72 @@ export class MateriaService {
     const estudianteId = typeof window !== 'undefined' ? (Number(localStorage.getItem('estudianteId')) || userId) : userId;
     const correoUsuario = typeof window !== 'undefined' ? (localStorage.getItem('correo') || '').toLowerCase().trim() : '';
 
+    if (rol === 'Docente') {
+      const urlDocenteClases = `${getApiBase()}/api/Docente/clases`;
+      const urlClaseDocente = `${getApiBase()}/api/Clase/docente/${userId}`;
+      const urlClaseDocenteLower = `${getApiBase()}/api/clase/docente/${userId}`;
+
+      return this.http.get<any>(urlDocenteClases).pipe(
+        catchError(() => this.http.get<any>(urlClaseDocente)),
+        catchError(() => this.http.get<any>(urlClaseDocenteLower)),
+        tap((res) => {
+          let clasesBackend: any[] = [];
+          if (Array.isArray(res)) {
+            clasesBackend = res;
+          } else if (res && Array.isArray((res as any).clases)) {
+            clasesBackend = (res as any).clases;
+          } else if (res && Array.isArray((res as any).materias)) {
+            clasesBackend = (res as any).materias;
+          }
+
+          if (clasesBackend.length > 0) {
+            const mapped = clasesBackend.map((item: any, idx: number) => this.mapToMateriaDto(item, idx));
+            const existing = this.materiasSubject.value;
+            const newMap = new Map<number, MateriaDto>();
+            existing.forEach(m => newMap.set(m.id, m));
+            mapped.forEach(m => newMap.set(m.id, m));
+            const merged = Array.from(newMap.values());
+            this.materiasSubject.next(merged);
+            this.saveStorage(this.STORAGE_MATERIAS, merged);
+          }
+        }),
+        map(() => this.materiasSubject.value),
+        catchError(() => of(this.materiasSubject.value))
+      );
+    }
+
+    if (rol === 'Administrador') {
+      const urlMateria = `${getApiBase()}/api/Materia`;
+      const urlMateriaLower = `${getApiBase()}/api/materia`;
+      const urlMaterias = `${getApiBase()}/api/Materias`;
+
+      return this.http.get<any>(urlMateria).pipe(
+        catchError(() => this.http.get<any>(urlMateriaLower)),
+        catchError(() => this.http.get<any>(urlMaterias)),
+        tap((res) => {
+          let mats: any[] = [];
+          if (Array.isArray(res)) {
+            mats = res;
+          } else if (res && Array.isArray((res as any).materias)) {
+            mats = (res as any).materias;
+          }
+
+          if (mats.length > 0) {
+            const mapped = mats.map((item: any, idx: number) => this.mapToMateriaDto(item, idx));
+            const existing = this.materiasSubject.value;
+            const mapById = new Map<number, MateriaDto>();
+            existing.forEach(m => mapById.set(m.id, m));
+            mapped.forEach(m => mapById.set(m.id, m));
+            const merged = Array.from(mapById.values());
+            this.materiasSubject.next(merged);
+            this.saveStorage(this.STORAGE_MATERIAS, merged);
+          }
+        }),
+        map(() => this.materiasSubject.value),
+        catchError(() => of(this.materiasSubject.value))
+      );
+    }
+
     if (rol !== 'Estudiante' && rol !== 'Ayudante') {
       return of(this.materiasSubject.value);
     }
@@ -378,17 +445,19 @@ export class MateriaService {
     const docenteMap: Record<number, string> = {
       1: 'Dra. Evelyn Vance',
       2: 'Dr. Marcus Thorne',
-      3: 'Prof. Sarah Chen'
+      3: 'Prof. Sarah Chen',
+      102: 'Docente Titular'
     };
 
+    const docId = Number(dto.docenteId || dto.docenteResponsableId || 1);
     const newId = Date.now();
     const nuevaMateria: MateriaDto = {
       id: newId,
       nombre: dto.nombre.trim(),
       codigo: dto.codigo.trim().toUpperCase(),
       descripcion: dto.descripcion?.trim() || 'Sin descripción detallada.',
-      docente: docenteMap[dto.docenteResponsableId || 1] || 'Docente Responsable',
-      docenteResponsableId: dto.docenteResponsableId || 1,
+      docente: docenteMap[docId] || 'Docente Titular',
+      docenteResponsableId: docId,
       creditos: dto.creditos || 4,
       semana: 1,
       totalSemanas: 16,
@@ -411,10 +480,31 @@ export class MateriaService {
     // Inicializar temas por defecto para la nueva materia
     this.ensureDefaultTemasAndContent(nuevaMateria.id, nuevaMateria.nombre);
 
-    return this.http.post<any>(this.apiUrl, dto).pipe(
+    // Payload explícito con { nombre, codigo, docenteId }
+    const postPayload = {
+      nombre: dto.nombre.trim(),
+      codigo: dto.codigo.trim().toUpperCase(),
+      docenteId: docId,
+      descripcion: dto.descripcion?.trim() || '',
+      creditos: Number(dto.creditos) || 4,
+      semestre: dto.semestre || '2026-2',
+      grupo: dto.grupo || 'Grupo A'
+    };
+
+    const urlMateria = `${getApiBase()}/api/Materia`;
+    const urlMateriaLower = `${getApiBase()}/api/materia`;
+    const urlMaterias = `${getApiBase()}/api/Materias`;
+
+    return this.http.post<any>(urlMateria, postPayload).pipe(
+      catchError(() => this.http.post<any>(urlMateriaLower, postPayload)),
+      catchError(() => this.http.post<any>(urlMaterias, postPayload)),
       tap((backendRes) => {
         if (backendRes && (backendRes.id || backendRes.materiaId)) {
-          nuevaMateria.id = backendRes.id || backendRes.materiaId;
+          const idDevuelto = Number(backendRes.id || backendRes.materiaId);
+          nuevaMateria.id = idDevuelto;
+          if (backendRes.docenteId) {
+            nuevaMateria.docenteResponsableId = Number(backendRes.docenteId);
+          }
           this.saveStorage(this.STORAGE_MATERIAS, this.materiasSubject.value);
         }
       }),
@@ -436,6 +526,16 @@ export class MateriaService {
       map(() => true),
       catchError(() => of(true))
     );
+  }
+
+  syncMaterias(nuevas: MateriaDto[]): void {
+    const current = this.materiasSubject.value;
+    const mapById = new Map<number, MateriaDto>();
+    current.forEach(m => mapById.set(m.id, m));
+    nuevas.forEach(m => mapById.set(m.id, m));
+    const merged = Array.from(mapById.values());
+    this.materiasSubject.next(merged);
+    this.saveStorage(this.STORAGE_MATERIAS, merged);
   }
 
   // ==================== TEMAS ====================

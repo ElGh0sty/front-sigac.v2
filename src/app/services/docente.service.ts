@@ -84,6 +84,23 @@ export class DocenteService {
 
   private get apiUrl() { return `${getApiBase()}/api/Docente`; }
 
+  /**
+   * GET /api/Docente/clases o GET /api/Clase/docente/{id}
+   * Consume la API para obtener las clases y materias asignadas al docente.
+   */
+  cargarClasesDocente(docenteId?: number): Observable<any[]> {
+    const docId = docenteId || 102;
+    const urlDocenteClases = `${this.apiUrl}/clases`;
+    const urlClaseDocente = `${getApiBase()}/api/Clase/docente/${docId}`;
+    const urlClaseDocenteLower = `${getApiBase()}/api/clase/docente/${docId}`;
+
+    return this.http.get<any[]>(urlDocenteClases).pipe(
+      catchError(() => this.http.get<any[]>(urlClaseDocente)),
+      catchError(() => this.http.get<any[]>(urlClaseDocenteLower)),
+      catchError(() => of([]))
+    );
+  }
+
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
     try {

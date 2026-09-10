@@ -15,7 +15,7 @@ import { AdminDocenteService } from '../../../services/admin-docente.service';
 })
 export class CrearClaseComponent implements OnInit, OnDestroy {
   materias: MateriaDto[] = [];
-  docentes: { id: number; nombre: string }[] = [];
+  docentes: { id: number; nombre: string; correo?: string }[] = [];
   private sub?: Subscription;
   private subDocentes?: Subscription;
 
@@ -23,7 +23,7 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
     nombre: '',
     carrera: 'Ingeniería de Software',
     semestre: '2026-2',
-    docenteId: 1,
+    docenteId: 102,
     materiaId: 0,
     materiaIdsSeleccionadas: [] as number[],
     descripcion: ''
@@ -56,9 +56,13 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
     this.subDocentes = this.adminDocenteService.getDocentes().subscribe(list => {
       this.docentes = list.map(d => ({
         id: d.id,
-        nombre: `${d.nombre} ${d.apellido}`.trim() || d.username
+        nombre: `${d.nombre} ${d.apellido}`.trim() || d.username,
+        correo: d.correo
       }));
-      if (this.docentes.length > 0 && !this.nuevaClase.docenteId) {
+      const docenteOficial = this.docentes.find(d => (d.correo || '').toLowerCase() === 'docente@uteq.edu.ec');
+      if (docenteOficial) {
+        this.nuevaClase.docenteId = docenteOficial.id;
+      } else if (this.docentes.length > 0 && !this.nuevaClase.docenteId) {
         this.nuevaClase.docenteId = this.docentes[0].id;
       }
     });
@@ -100,11 +104,22 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
       ? this.nuevaClase.materiaIdsSeleccionadas
       : (this.nuevaClase.materiaId ? [Number(this.nuevaClase.materiaId)] : []);
 
+    let resolvedMateriaId: number;
+    if (selectedMateriaIds.length > 0) {
+      resolvedMateriaId = Number(selectedMateriaIds[0]);
+    } else if (this.materias.length > 0) {
+      resolvedMateriaId = Number(this.materias[0].id);
+    } else {
+      resolvedMateriaId = 101;
+    }
+
+    const resolvedDocenteId = Number(this.nuevaClase.docenteId) || 102;
+
     this.claseService.createClase({
       nombre: this.nuevaClase.nombre.trim(),
-      materiaId: selectedMateriaIds[0],
-      materiaIds: selectedMateriaIds,
-      docenteId: Number(this.nuevaClase.docenteId) || 1,
+      materiaId: resolvedMateriaId,
+      materiaIds: selectedMateriaIds.length > 0 ? selectedMateriaIds : [resolvedMateriaId],
+      docenteId: resolvedDocenteId,
       semestre: this.nuevaClase.semestre || '2026-2',
       carrera: this.nuevaClase.carrera || 'Ingeniería',
       descripcion: this.nuevaClase.descripcion?.trim() || '',

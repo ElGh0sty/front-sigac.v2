@@ -129,12 +129,15 @@ export class ClaseService {
       ? dto.materiaIds
       : (dto.materiaId ? [Number(dto.materiaId)] : []);
 
+    const resolvedMateriaId = Number(dto.materiaId || (matIds.length > 0 ? matIds[0] : 101));
+    const resolvedDocenteId = Number(dto.docenteId || 1);
+
     const nuevaClase: ClaseDto = {
       id: Math.floor((Date.now() / 1000) % 2000000000) + 1,
       nombre: dto.nombre.trim(),
-      materiaId: dto.materiaId ? Number(dto.materiaId) : (matIds[0] || 101),
-      materiaIds: matIds,
-      docenteId: Number(dto.docenteId || 1),
+      materiaId: resolvedMateriaId,
+      materiaIds: matIds.length > 0 ? matIds : [resolvedMateriaId],
+      docenteId: resolvedDocenteId,
       semestre: dto.semestre || '2026-2',
       descripcion: dto.descripcion?.trim() || '',
       carrera: dto.carrera || 'Ingeniería',
@@ -146,12 +149,40 @@ export class ClaseService {
     this.clasesSubject.next(updated);
     this.saveStorage(this.STORAGE_CLASES, updated);
 
-    return this.http.post<ClaseDto>(this.apiUrl, dto).pipe(
+    // Payload con materiaId y docenteId válidos (nunca null ni undefined)
+    const postPayload = {
+      nombre: dto.nombre.trim(),
+      materiaId: resolvedMateriaId,
+      docenteId: resolvedDocenteId,
+      semestre: dto.semestre || '2026-2',
+      carrera: dto.carrera || 'Ingeniería',
+      descripcion: dto.descripcion?.trim() || '',
+      estudianteIds: dto.estudianteIds || [1, 2]
+    };
+
+    const urlClase = `${getApiBase()}/api/Clase`;
+    const urlClaseLower = `${getApiBase()}/api/clase`;
+    const urlClases = `${getApiBase()}/api/Clases`;
+
+    return this.http.post<any>(urlClase, postPayload).pipe(
+      catchError(() => this.http.post<any>(urlClaseLower, postPayload)),
+      catchError(() => this.http.post<any>(urlClases, postPayload)),
       tap((backendRes) => {
-        if (backendRes && backendRes.id) {
-          nuevaClase.id = backendRes.id;
+        if (backendRes && (backendRes.id || backendRes.claseId)) {
+          nuevaClase.id = Number(backendRes.id || backendRes.claseId);
           this.saveStorage(this.STORAGE_CLASES, this.clasesSubject.value);
         }
+      }),
+      map((res) => {
+        if (res && (res.id || res.claseId)) {
+          return {
+            ...nuevaClase,
+            id: Number(res.id || res.claseId),
+            materiaId: Number(res.materiaId || resolvedMateriaId),
+            docenteId: Number(res.docenteId || resolvedDocenteId)
+          };
+        }
+        return nuevaClase;
       }),
       catchError(() => of(nuevaClase))
     );

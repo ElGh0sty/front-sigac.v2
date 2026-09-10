@@ -1,8 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { getApiBase } from '../../../api';
 import { ClaseService } from '../../../services/clase.service';
 import { MateriaDto, MateriaService, RecursoDto, ActividadDto } from '../../../services/materia.service';
 import { DocumentosDescargaService } from '../../../services/documentos-descarga.service';
@@ -162,6 +165,7 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private http: HttpClient,
     private claseService: ClaseService,
     private materiaService: MateriaService,
     private docenteService: DocenteService,
@@ -179,7 +183,8 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
       this.nombreDocente = rawNombre;
     }
 
-    this.cargarClasesGuardadas();
+    // Consumir la API para reflejar de inmediato cualquier materia asignada por el Administrador
+    this.cargarClasesDocente();
 
     // Suscripción a Materias
     this.subs.push(
@@ -529,7 +534,119 @@ export class GestionClasesComponent implements OnInit, OnDestroy {
   // CREACIÓN Y PROGRAMACIÓN DE CLASES
   // ==========================================
 
-  private cargarClasesGuardadas() {
+  /**
+   * Consume la API oficial (/api/Docente/clases o /api/Clase/docente/{id})
+   * para reflejar de inmediato cualquier materia que el Administrador haya asignado al docente.
+   */
+  cargarClasesDocente(): void {
+    this.isLoading = true;
+    const docId = this.docenteIdLogueado || 102;
+    const urlDocenteClases = `${getApiBase()}/api/Docente/clases`;
+    const urlDocenteClasesLower = `${getApiBase()}/api/docente/clases`;
+    const urlClaseDocente = `${getApiBase()}/api/Clase/docente/${docId}`;
+    const urlClaseDocenteLower = `${getApiBase()}/api/clase/docente/${docId}`;
+
+    this.http.get<any[]>(urlDocenteClases).pipe(
+      catchError(() => this.http.get<any[]>(urlDocenteClasesLower)),
+      catchError(() => this.http.get<any[]>(urlClaseDocente)),
+      catchError(() => this.http.get<any[]>(urlClaseDocenteLower)),
+      catchError(() => of([]))
+    ).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        let listaBackend: any[] = [];
+        if (Array.isArray(res)) {
+          listaBackend = res;
+        } else if (res && Array.isArray((res as any).clases)) {
+          listaBackend = (res as any).clases;
+        } else if (res && Array.isArray((res as any).materias)) {
+          listaBackend = (res as any).materias;
+        }
+
+        if (listaBackend.length > 0) {
+          this.procesarClasesBackend(listaBackend);
+        } else {
+          this.cargarClasesLocalesFallback();
+        }
+      },
+      error: () => {
+        this.isLoading = false;
+        this.cargarClasesLocalesFallback();
+      }
+    });
+  }
+
+  private procesarClasesBackend(lista: any[]) {
+    const nuevasMaterias: MateriaDto[] = [];
+    const nuevasClasesCreadas: ClaseCreada[] = [];
+
+    lista.forEach((item, idx) => {
+      const matId = Number(item.materiaId || item.id || (idx + 101));
+      const matNombre = item.materia?.nombre || item.nombreMateria || item.nombre || `Materia ${matId}`;
+      const matCodigo = item.materia?.codigo || item.codigo || `MAT-${matId}`;
+      const matCreditos = Number(item.materia?.creditos || item.creditos || 4);
+
+      const matDto: MateriaDto = {
+        id: matId,
+        nombre: matNombre,
+        codigo: matCodigo,
+        docente: this.nombreDocente,
+        docenteResponsableId: this.docenteIdLogueado,
+        creditos: matCreditos,
+        semestre: item.semestre || '2026-2',
+        claseId: Number(item.id || item.claseId || matId),
+        claseNombre: item.nombreClase || item.nombre || 'Cohorte Asignada',
+        semana: item.semana || 1,
+        totalSemanas: item.totalSemanas || 16,
+        grupo: item.grupo || 'Grupo A',
+        estudiantes: item.estudiantes || [
+          { id: 1, nombre: 'Alejandro García', correo: 'a.garcia@uteq.edu.ec', nota: 4.8, asistencia: 100 },
+          { id: 2, nombre: 'María López', correo: 'm.lopez@uteq.edu.ec', nota: 4.6, asistencia: 95 }
+        ]
+      };
+      nuevasMaterias.push(matDto);
+
+      const claseProg: ClaseCreada = {
+        id: Number(item.id || idx + 1),
+        materiaId: matId,
+        nombreMateria: matNombre,
+        dias: Array.isArray(item.dias) && item.dias.length > 0 ? item.dias : ['Lunes', 'Miércoles'],
+        fecha: item.fecha || '2026-08-25',
+        horaInicio: item.horaInicio || '08:00',
+        horaFin: item.horaFin || '10:00',
+        tipoClase: item.tipoClase || (item.linkVirtual ? 'Virtual' : 'Presencial'),
+        linkVirtual: item.linkVirtual || 'https://meet.google.com/uteq-clase-virtual',
+        aplicacionVirtual: item.aplicacionVirtual || 'Google Meet',
+        edificioPresencial: item.edificioPresencial || 'Edificio Central de Ingeniería',
+        aulaPresencial: item.aulaPresencial || 'Aula 302',
+        pisoPresencial: item.pisoPresencial || 'Piso 3',
+        estudiantes: item.estudiantes || [
+          { id: 1, nombre: 'Alejandro García', presente: true },
+          { id: 2, nombre: 'María López', presente: true }
+        ]
+      };
+      nuevasClasesCreadas.push(claseProg);
+    });
+
+    if (nuevasClasesCreadas.length > 0) {
+      this.clasesCreadas = nuevasClasesCreadas;
+      this.guardarEnStorage();
+    }
+
+    if (nuevasMaterias.length > 0) {
+      this.materiaService.syncMaterias(nuevasMaterias);
+    }
+
+    if (!this.materiaSeleccionadaId || !this.materias.some(m => m.id === this.materiaSeleccionadaId)) {
+      if (this.materias.length > 0) {
+        this.materiaSeleccionadaId = this.materias[0].id;
+        this.nuevaClase.materiaId = this.materiaSeleccionadaId;
+      }
+    }
+    this.actualizarRecursosYActividades();
+  }
+
+  private cargarClasesLocalesFallback() {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(this.STORAGE_DOCENTE_CLASES);
