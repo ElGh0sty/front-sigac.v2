@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ClaseService } from '../../../services/clase.service';
 import { MateriaDto, MateriaService } from '../../../services/materia.service';
+import { AdminDocenteService } from '../../../services/admin-docente.service';
 
 @Component({
   selector: 'app-crear-clase',
@@ -14,12 +15,9 @@ import { MateriaDto, MateriaService } from '../../../services/materia.service';
 })
 export class CrearClaseComponent implements OnInit, OnDestroy {
   materias: MateriaDto[] = [];
-  docentes = [
-    { id: 1, nombre: 'Dra. Evelyn Vance' },
-    { id: 2, nombre: 'Dr. Marcus Thorne' },
-    { id: 3, nombre: 'Prof. Sarah Chen' }
-  ];
+  docentes: { id: number; nombre: string }[] = [];
   private sub?: Subscription;
+  private subDocentes?: Subscription;
 
   nuevaClase = {
     nombre: '',
@@ -39,7 +37,8 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
     private router: Router,
     private location: Location,
     private claseService: ClaseService,
-    private materiaService: MateriaService
+    private materiaService: MateriaService,
+    private adminDocenteService: AdminDocenteService
   ) {}
 
   goBack(event?: Event): void {
@@ -54,6 +53,16 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.subDocentes = this.adminDocenteService.getDocentes().subscribe(list => {
+      this.docentes = list.map(d => ({
+        id: d.id,
+        nombre: `${d.nombre} ${d.apellido}`.trim() || d.username
+      }));
+      if (this.docentes.length > 0 && !this.nuevaClase.docenteId) {
+        this.nuevaClase.docenteId = this.docentes[0].id;
+      }
+    });
+
     this.sub = this.materiaService.materias$.subscribe(list => {
       this.materias = list;
     });
@@ -61,6 +70,7 @@ export class CrearClaseComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.subDocentes?.unsubscribe();
   }
 
   toggleMateriaSelection(id: number) {

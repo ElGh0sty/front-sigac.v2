@@ -1,4 +1,6 @@
-export const DEFAULT_API_BASE = 'http://localhost:5291';
+import { environment } from '../environments/environment';
+
+export const DEFAULT_API_BASE = (environment.apiUrl || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
 
 export function isModoAutonomo(): boolean {
   if (typeof window !== 'undefined') {
@@ -16,9 +18,9 @@ export function getApiBase(): string {
       if (clean === 'OFFLINE' || clean === 'MOCK' || clean === 'SIN_BACKEND') {
         return '';
       }
-      // Evitar peticiones residuales al puerto 7050 o HTTPS desactualizado que provocan ERR_CONNECTION_REFUSED
-      if (clean.includes(':7050')) {
-        const corregido = clean.replace(':7050', ':5291').replace('https://', 'http://');
+      // Si existía configuración residual anterior a puertos 7050 o 5291, migrar al backend activo (puerto 3000)
+      if (clean.includes(':7050') || clean.includes(':5291')) {
+        const corregido = clean.replace(/:[0-9]+/, ':3000').replace('https://', 'http://');
         localStorage.setItem('API_BASE', corregido);
         return corregido;
       }
@@ -31,11 +33,16 @@ export function getApiBase(): string {
       return env.API_BASE.trim().replace(/\/+$/, '');
     }
 
-    // Valor predeterminado de la API en .NET: http://localhost:5291 (HTTP sin SSL)
+    // Valor predeterminado del backend Kestrel en puerto 3000
     return DEFAULT_API_BASE;
   }
 
   return DEFAULT_API_BASE;
+}
+
+export function getApiUrl(): string {
+  const base = getApiBase();
+  return base ? `${base}/api` : environment.apiUrl;
 }
 
 export function setApiBase(url: string): void {

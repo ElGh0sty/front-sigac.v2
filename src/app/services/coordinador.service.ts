@@ -44,22 +44,27 @@ export class CoordinadorService {
     private materiaService: MateriaService
   ) {}
 
-  private catedrasMock: CatedraMinimoNotaDto[] = [
-    { id: 201, nombre: 'Cálculo Avanzado', codigo: 'MAT-301', minimoNota: 8.0, docente: 'Dr. Roberto Zambrano', semestre: 'Tercer Semestre' },
-    { id: 202, nombre: 'Estructuras de Datos y Algoritmos', codigo: 'SIS-302', minimoNota: 8.5, docente: 'Ing. Carlos Mendoza', semestre: 'Cuarto Semestre' },
-    { id: 203, nombre: 'Arquitectura de Software y Cloud', codigo: 'SIS-501', minimoNota: 8.0, docente: 'Mgtr. Patricia Silva', semestre: 'Quinto Semestre' },
-    { id: 204, nombre: 'Bases de Datos Relacionales', codigo: 'BD-204', minimoNota: 7.5, docente: 'Ing. Marco Morales', semestre: 'Tercer Semestre' },
-    { id: 205, nombre: 'Física Clásica y Electromagnetismo', codigo: 'FIS-102', minimoNota: 7.0, docente: 'Dra. Elena Ramos', semestre: 'Segundo Semestre' }
-  ];
+  private catedrasMock: CatedraMinimoNotaDto[] = [];
 
   private get apiUrl() { return `${getApiBase()}/api/Coordinador`; }
 
   /**
    * Cátedras configuradas para nota mínima de ayudantía
-   * (En el backend el endpoint es PUT /api/Coordinador/catedras/{id}/minimo-nota)
+   * Utiliza las materias reales del sistema
    */
   getCatedrasConMinimoNota(): Observable<CatedraMinimoNotaDto[]> {
-    return of([...this.catedrasMock]);
+    const realMaterias = this.materiaService.getMateriasSnapshot();
+    if (realMaterias && realMaterias.length > 0) {
+      return of(realMaterias.map(m => ({
+        id: m.id,
+        nombre: m.nombre,
+        codigo: m.codigo,
+        minimoNota: 8.0,
+        docente: m.docente || 'Docente Responsable',
+        semestre: m.semestre || 'Semestre Actual'
+      })));
+    }
+    return of([]);
   }
 
   getSolicitudesAyudantia(): Observable<SolicitudAyudantiaDto[]> {

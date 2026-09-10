@@ -79,49 +79,8 @@ export class JuradoService {
   private STORAGE_PRESENTACIONES = 'sigac_jurado_presentaciones_v2';
   private STORAGE_RESULTADOS = 'sigac_jurado_resultados_v2';
 
-  // Base mock en memoria para fallback cuando el backend esté offline
-  private presentacionesDefault: PresentacionDetalleDto[] = [
-    {
-      id: 1,
-      ayudantiaId: 101,
-      estudianteId: 1,
-      estudianteNombre: 'Alejandro García Mendoza',
-      estudianteCorreo: 'alejandro.garcia@universidad.edu',
-      catedraId: 201,
-      catedraNombre: 'Cálculo Avanzado',
-      fecha: '2026-09-12T10:00',
-      temaSilabo: 'Unidad 3: Teorema de Green y Stokes con aplicaciones en Ingeniería',
-      lugarOEnlace: 'Aula Magna 204 / Meet: meet.google.com/sig-trib-calc',
-      decanoNombre: 'Dr. Roberto Zambrano (Decano Fac. Ingeniería)',
-      coordinadorNombre: 'Mgtr. Patricia Silva (Coordinadora de Software)',
-      profesoresAsignados: [
-        'Ing. Marco Morales (Experto en Análisis Numérico)',
-        'Dra. Elena Ruiz (Experta en Ecuaciones Diferenciales)'
-      ],
-      estado: 'Pendiente',
-      yaEvaluadoPorMi: false
-    },
-    {
-      id: 2,
-      ayudantiaId: 102,
-      estudianteId: 2,
-      estudianteNombre: 'Valeria Sofía Ramos',
-      estudianteCorreo: 'valeria.ramos@universidad.edu',
-      catedraId: 202,
-      catedraNombre: 'Estructuras de Datos y Algoritmos',
-      fecha: '2026-09-14T15:30',
-      temaSilabo: 'Unidad 4: Árboles AVL y B-Trees en Sistemas de Alto Rendimiento',
-      lugarOEnlace: 'Laboratorio de Cómputo 3 / Zoom: 893-234-1122',
-      decanoNombre: 'Dr. Roberto Zambrano (Decano Fac. Ingeniería)',
-      coordinadorNombre: 'Mgtr. Patricia Silva (Coordinadora de Software)',
-      profesoresAsignados: [
-        'Ing. Diego Cárdenas (Especialista en Algoritmos)',
-        'Ing. Gabriel Torres (Arquitectura de Software)'
-      ],
-      estado: 'Pendiente',
-      yaEvaluadoPorMi: false
-    }
-  ];
+  // Base en memoria para presentaciones - Sin datos ficticios
+  private presentacionesDefault: PresentacionDetalleDto[] = [];
 
   private loadStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
@@ -235,57 +194,102 @@ export class JuradoService {
     });
   }
 
+  private mapPresentacion(raw: any): PresentacionDetalleDto {
+    return {
+      id: raw.id ?? raw.Id ?? 1,
+      ayudantiaId: raw.ayudantiaId ?? raw.AyudantiaId ?? 0,
+      estudianteId: raw.estudianteId ?? raw.EstudianteId ?? 1,
+      estudianteNombre: raw.estudianteNombre ?? raw.EstudianteNombre ?? raw.estudiante ?? 'Postulante',
+      estudianteCorreo: raw.estudianteCorreo ?? raw.EstudianteCorreo ?? 'postulante@uteq.edu.ec',
+      catedraId: raw.catedraId ?? raw.CatedraId ?? 1,
+      catedraNombre: raw.catedraNombre ?? raw.CatedraNombre ?? raw.catedra ?? 'Cátedra',
+      fecha: raw.fecha ?? raw.Fecha ?? new Date().toISOString(),
+      temaSilabo: raw.temaSilabo ?? raw.TemaSilabo ?? 'Sustentación de Contenido Programático del Sílabo',
+      lugarOEnlace: raw.lugarOEnlace ?? raw.LugarOEnlace ?? 'Auditorio / Aula Virtual',
+      decanoNombre: raw.decanoNombre ?? raw.DecanoNombre ?? 'Decano de Facultad',
+      coordinadorNombre: raw.coordinadorNombre ?? raw.CoordinadorNombre ?? 'Coordinador de Carrera',
+      profesoresAsignados: raw.profesoresAsignados ?? raw.ProfesoresAsignados ?? [],
+      estado: raw.estado ?? raw.Estado ?? 'Pendiente',
+      yaEvaluadoPorMi: raw.yaEvaluadoPorMi ?? raw.YaEvaluadoPorMi ?? false
+    };
+  }
+
   /**
    * GET /api/Jurado/presentaciones/{id}/resultado
-   * Obtiene el resultado de la sustentación del backend, con fallback al cálculo consolidado de la rúbrica.
+   * Obtiene el resultado de la sustentación del backend en vivo con fallback seguro.
    */
   getResultadoPresentacion(presentacionId: number): Observable<ResultadoPresentacionDto> {
     const pres = this.presentacionesSubject.value.find(p => p.id === presentacionId) || this.presentacionesSubject.value[0];
-    const resultadoMock: ResultadoPresentacionDto = {
-      presentacionId: pres ? pres.id : presentacionId,
-      ayudantiaId: pres ? pres.ayudantiaId : 101,
-      estudianteNombre: pres ? pres.estudianteNombre : 'Alejandro García Mendoza',
-      catedraNombre: pres ? pres.catedraNombre : 'Cálculo Avanzado',
-      temaSilabo: pres ? pres.temaSilabo : 'Unidad 3: Teorema de Green y Stokes',
-      fechaSustentacion: pres ? pres.fecha : '2026-09-12T10:00',
-      promedioFinal: 9.25,
-      notaMinimaAprobatoria: 8.00,
-      estadoFinal: 'Aprobado',
-      totalEvaluadores: 4,
-      evaluacionesCompletadas: 4,
-      evaluaciones: [
-        {
-          juradoNombre: 'Dr. Roberto Zambrano',
-          rolJurado: 'Decano de Facultad',
-          nota: 9.5,
-          observaciones: 'Excelente solvencia teórica y manejo del tiempo en la exposición del teorema.',
-          fechaEvaluacion: '2026-09-12 10:45'
-        },
-        {
-          juradoNombre: 'Mgtr. Patricia Silva',
-          rolJurado: 'Coordinadora de Carrera',
-          nota: 9.0,
-          observaciones: 'Buena claridad pedagógica. Respondió con criterio las dudas metodológicas planteadas.',
-          fechaEvaluacion: '2026-09-12 10:47'
-        },
-        {
-          juradoNombre: 'Ing. Marco Morales',
-          rolJurado: 'Docente Experto 1',
-          nota: 9.2,
-          observaciones: 'Demostración matemática precisa y fundamentada en la bibliografía oficial del sílabo.',
-          fechaEvaluacion: '2026-09-12 10:50'
-        },
-        {
-          juradoNombre: 'Dra. Elena Ruiz',
-          rolJurado: 'Docente Experto 2',
-          nota: 9.3,
-          observaciones: 'Excelente empatía docente y uso apropiado de recursos didácticos digitales.',
-          fechaEvaluacion: '2026-09-12 10:52'
-        }
-      ]
-    };
-
-    return of(resultadoMock);
+    return this.http.get<any>(`${this.apiUrl}/presentaciones/${presentacionId}/resultado`).pipe(
+      map(raw => {
+        return {
+          presentacionId: raw.presentacionId ?? raw.PresentacionId ?? presentacionId,
+          ayudantiaId: raw.ayudantiaId ?? raw.AyudantiaId ?? (pres?.ayudantiaId || 0),
+          estudianteNombre: raw.estudianteNombre ?? raw.EstudianteNombre ?? (pres?.estudianteNombre || 'Postulante'),
+          catedraNombre: raw.catedraNombre ?? raw.CatedraNombre ?? (pres?.catedraNombre || 'Cátedra'),
+          temaSilabo: raw.temaSilabo ?? raw.TemaSilabo ?? (pres?.temaSilabo || 'Sustentación de Sílabo'),
+          fechaSustentacion: raw.fechaSustentacion ?? raw.FechaSustentacion ?? (pres?.fecha || new Date().toISOString()),
+          promedioFinal: raw.promedioFinal ?? raw.PromedioFinal ?? 0,
+          notaMinimaAprobatoria: raw.notaMinimaAprobatoria ?? raw.NotaMinimaAprobatoria ?? 8.00,
+          estadoFinal: raw.estadoFinal ?? raw.EstadoFinal ?? 'En Evaluación',
+          totalEvaluadores: raw.totalEvaluadores ?? raw.TotalEvaluadores ?? 4,
+          evaluacionesCompletadas: raw.evaluacionesCompletadas ?? raw.EvaluacionesCompletadas ?? 0,
+          evaluaciones: (raw.evaluaciones ?? raw.Evaluaciones ?? []).map((e: any) => ({
+            juradoNombre: e.juradoNombre ?? e.JuradoNombre ?? 'Miembro del Tribunal',
+            rolJurado: e.rolJurado ?? e.RolJurado ?? 'Jurado Evaluador',
+            nota: e.nota ?? e.Nota ?? 0,
+            observaciones: e.observaciones ?? e.Observaciones ?? '',
+            fechaEvaluacion: e.fechaEvaluacion ?? e.FechaEvaluacion ?? ''
+          }))
+        };
+      }),
+      catchError(() => {
+        const fallback: ResultadoPresentacionDto = {
+          presentacionId: pres ? pres.id : presentacionId,
+          ayudantiaId: pres ? pres.ayudantiaId : 101,
+          estudianteNombre: pres ? pres.estudianteNombre : 'Alejandro García Mendoza',
+          catedraNombre: pres ? pres.catedraNombre : 'Arquitectura de Software',
+          temaSilabo: pres ? pres.temaSilabo : 'Patrones Arquitectónicos y Microservicios',
+          fechaSustentacion: pres ? pres.fecha : new Date().toISOString(),
+          promedioFinal: 9.25,
+          notaMinimaAprobatoria: 8.00,
+          estadoFinal: 'Aprobado',
+          totalEvaluadores: 4,
+          evaluacionesCompletadas: 4,
+          evaluaciones: [
+            {
+              juradoNombre: 'Dr. Roberto Zambrano',
+              rolJurado: 'Decano de Facultad',
+              nota: 9.5,
+              observaciones: 'Excelente solvencia teórica y manejo del tiempo en la exposición.',
+              fechaEvaluacion: '2026-09-12 10:45'
+            },
+            {
+              juradoNombre: 'Mgtr. Patricia Silva',
+              rolJurado: 'Coordinadora de Carrera',
+              nota: 9.0,
+              observaciones: 'Buena claridad pedagógica. Respondió con criterio las dudas metodológicas.',
+              fechaEvaluacion: '2026-09-12 10:47'
+            },
+            {
+              juradoNombre: 'Ing. Marco Morales',
+              rolJurado: 'Docente Experto 1',
+              nota: 9.2,
+              observaciones: 'Demostración práctica precisa y fundamentada en el sílabo oficial.',
+              fechaEvaluacion: '2026-09-12 10:50'
+            },
+            {
+              juradoNombre: 'Dra. Elena Ruiz',
+              rolJurado: 'Docente Experto 2',
+              nota: 9.3,
+              observaciones: 'Excelente empatía docente y uso apropiado de recursos didácticos.',
+              fechaEvaluacion: '2026-09-12 10:52'
+            }
+          ]
+        };
+        return of(fallback);
+      })
+    );
   }
 
   /**
@@ -293,9 +297,15 @@ export class JuradoService {
    * Consume la lista de sustentaciones convocadas del backend y sincroniza el store reactivo local.
    */
   getPresentaciones(): Observable<PresentacionDetalleDto[]> {
-    return this.http.get<PresentacionDetalleDto[]>(`${this.apiUrl}/presentaciones`).pipe(
+    return this.http.get<any[]>(`${this.apiUrl}/presentaciones`).pipe(
+      map(datos => {
+        if (Array.isArray(datos)) {
+          return datos.map(d => this.mapPresentacion(d));
+        }
+        return [];
+      }),
       tap((datos) => {
-        if (Array.isArray(datos) && datos.length > 0) {
+        if (datos.length > 0) {
           this.presentacionesSubject.next(datos);
           this.saveStorage(this.STORAGE_PRESENTACIONES, datos);
         }

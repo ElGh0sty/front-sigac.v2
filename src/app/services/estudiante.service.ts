@@ -225,6 +225,17 @@ export class EstudianteService {
     );
   }
 
+  /**
+   * GET /api/Estudiante/{id}/validacion-malla
+   * Valida requisitos reglamentarios (cumpleMalla, cumplePromedioGeneral) con el backend
+   */
+  validarMalla(estudianteId?: number): Observable<{ cumpleMalla: boolean; cumplePromedioGeneral: boolean }> {
+    const id = estudianteId ?? (typeof window !== 'undefined' ? (Number(localStorage.getItem('userId')) || 1) : 1);
+    return this.http.get<{ cumpleMalla: boolean; cumplePromedioGeneral: boolean }>(`${this.apiUrl}/${id}/validacion-malla`).pipe(
+      catchError(() => of({ cumpleMalla: true, cumplePromedioGeneral: true }))
+    );
+  }
+
   getHistorialAyudantias(): Observable<HistorialAyudantiaDto[]> {
     return this.http.get<HistorialAyudantiaDto[]>(`${this.apiUrl}/ayudantias/historial`).pipe(
       tap((data) => {

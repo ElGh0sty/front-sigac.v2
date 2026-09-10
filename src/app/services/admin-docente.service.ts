@@ -37,64 +37,8 @@ export class AdminDocenteService {
 
   private STORAGE_KEY = 'sigac_docentes_creados_v1';
 
-  // Lista base mock de docentes para desarrollo local y selectores de tribunal
-  private docentesBase: DocenteItemDto[] = [
-    {
-      id: 201,
-      username: 'evelyn.vance',
-      nombre: 'Evelyn',
-      apellido: 'Vance',
-      correo: 'evelyn.vance@universidad.edu',
-      roles: ['Docente', 'Coordinador'],
-      activo: true,
-      departamento: 'Ciencias Exactas',
-      titulo: 'PhD en Matemáticas Puras'
-    },
-    {
-      id: 202,
-      username: 'carlos.mendoza',
-      nombre: 'Carlos',
-      apellido: 'Mendoza',
-      correo: 'carlos.mendoza@universidad.edu',
-      roles: ['Docente', 'Tribunal'],
-      activo: true,
-      departamento: 'Ingeniería de Software',
-      titulo: 'Mgtr. en Ciencias de la Computación'
-    },
-    {
-      id: 203,
-      username: 'patricia.silva',
-      nombre: 'Patricia',
-      apellido: 'Silva',
-      correo: 'patricia.silva@universidad.edu',
-      roles: ['Docente', 'Coordinador', 'Tribunal'],
-      activo: true,
-      departamento: 'Sistemas Informáticos',
-      titulo: 'Dra. en Arquitectura de Software'
-    },
-    {
-      id: 204,
-      username: 'marco.morales',
-      nombre: 'Marco',
-      apellido: 'Morales',
-      correo: 'marco.morales@universidad.edu',
-      roles: ['Docente', 'Tribunal'],
-      activo: true,
-      departamento: 'Computación y Sistemas',
-      titulo: 'PhD en Métodos Numéricos'
-    },
-    {
-      id: 205,
-      username: 'elena.ruiz',
-      nombre: 'Elena',
-      apellido: 'Ruiz',
-      correo: 'elena.ruiz@universidad.edu',
-      roles: ['Docente', 'Tribunal'],
-      activo: true,
-      departamento: 'Matemática y Física',
-      titulo: 'Dra. en Ecuaciones Diferenciales'
-    }
-  ];
+  // Lista base de docentes - Sin mocks ficticios (únicamente docentes reales del backend o creados)
+  private docentesBase: DocenteItemDto[] = [];
 
   private getDocentesGuardadosLocal(): DocenteItemDto[] {
     if (typeof window === 'undefined') return [];

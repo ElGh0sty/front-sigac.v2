@@ -30,15 +30,26 @@
           <span>{{ errorMessage }}</span>
         </div>
 
-        <!-- Campo Usuario -->
+        <!-- Campo Usuario / Correo -->
         <div>
-          <label for="username" class="block text-sm font-medium text-slate-700 mb-2">Usuario</label>
+          <label for="username" class="block text-sm font-medium text-slate-700 mb-2">
+            Usuario o Correo Institucional
+          </label>
           <div class="relative group">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-accent transition-colors">
               <i class="fa-regular fa-envelope"></i>
             </div>
-            <input type="text" id="username" name="username" [(ngModel)]="credentials.username" placeholder="nombre.usuario" required class="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all placeholder:text-slate-400 text-slate-900" />
+            <input
+              type="text"
+              id="username"
+              name="username"
+              [(ngModel)]="credentials.username"
+              placeholder="admin o admin@uteq.edu.ec"
+              required
+              class="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all placeholder:text-slate-400 text-slate-900 text-sm"
+            />
           </div>
+          <p class="text-[11px] text-slate-400 mt-1">Acepta tanto nombre de usuario como correo &#64;uteq.edu.ec</p>
         </div>
 
         <!-- Campo Contraseña -->
@@ -65,92 +76,67 @@
 
         <!-- Checkbox -->
         <div class="flex items-center">
-          <input type="checkbox" id="remember" class="w-4 h-4 rounded border-slate-300 bg-white text-accent focus:ring-accent/20 accent-accent" />
-          <label for="remember" class="ml-2 text-sm text-slate-600">Mantener sesión iniciada</label>
+          <input type="checkbox" id="remember" class="w-4 h-4 rounded border-slate-300 bg-white text-accent focus:ring-accent/20 accent-accent cursor-pointer" />
+          <label for="remember" class="ml-2 text-sm text-slate-600 cursor-pointer">Mantener sesión iniciada</label>
         </div>
 
         <!-- Botón de Acceso -->
         <button
           type="submit"
           [disabled]="isLoading"
-          class="w-full py-3.5 px-4 bg-accent hover:bg-accent-dim text-white font-bold rounded-xl shadow-lg shadow-accent/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group"
+          class="w-full py-3.5 px-4 bg-accent hover:bg-accent-dim text-white font-bold rounded-xl shadow-lg shadow-accent/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group cursor-pointer"
         >
-          <span *ngIf="!isLoading">Acceder con Credenciales</span>
-          <span *ngIf="isLoading">Cargando...</span>
+          <span *ngIf="!isLoading">Iniciar Sesión</span>
+          <span *ngIf="isLoading">Verificando en Backend...</span>
           <i class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform" *ngIf="!isLoading"></i>
         </button>
 
       </form>
 
-      <!-- Modo de Prueba / Acceso Rápido por Rol -->
+      <!-- 7 Cuentas de Prueba Oficiales Precargadas en Backend -->
       <div class="mt-6 pt-5 border-t border-slate-100 relative z-10">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-bolt text-amber-500"></i> Acceso Directo de Prueba
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-indigo-600"></i> Cuentas de Prueba Oficiales (Backend)
           </span>
-          <span class="text-[11px] text-slate-400">Sin backend activo</span>
+          <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono">
+            7 Roles
+          </span>
         </div>
+        <p class="text-[11px] text-slate-500 mb-3 leading-relaxed">
+          Haz clic en cualquier cuenta para cargar sus credenciales o entrar directamente al sistema con dicho rol:
+        </p>
 
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            (click)="ingresarComoDemo('Estudiante')"
-            class="p-2.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-left transition-all group"
-          >
-            <div class="flex items-center gap-2 mb-0.5">
-              <i class="fa-solid fa-user-graduate text-xs text-blue-600"></i>
-              <span class="text-xs font-bold text-slate-800 group-hover:text-blue-700">Estudiante</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div *ngFor="let c of cuentasPrueba"
+               class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl flex flex-col justify-between transition-all">
+            <div>
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="text-xs font-bold text-slate-900">{{ c.rol }}</span>
+                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600">
+                  {{ c.usuario }}
+                </span>
+              </div>
+              <p class="text-[11px] font-mono text-slate-500 truncate">{{ c.correo }}</p>
+              <p class="text-[10px] text-slate-400 font-mono">Clave: {{ c.clave }}</p>
             </div>
-            <p class="text-[10px] text-slate-400 line-clamp-1">Materias, actividades</p>
-          </button>
-
-          <button
-            type="button"
-            (click)="ingresarComoDemo('Docente')"
-            class="p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl text-left transition-all group"
-          >
-            <div class="flex items-center gap-2 mb-0.5">
-              <i class="fa-solid fa-chalkboard-user text-xs text-emerald-600"></i>
-              <span class="text-xs font-bold text-slate-800 group-hover:text-emerald-700">Docente</span>
+            <div class="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-slate-200/60">
+              <button
+                type="button"
+                (click)="cargarCredencialesPrueba(c)"
+                class="flex-1 py-1 text-[11px] font-medium bg-white hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
+                title="Cargar credenciales en el formulario">
+                Rellenar
+              </button>
+              <button
+                type="button"
+                (click)="ingresarDirectoConPrueba(c)"
+                class="flex-1 py-1 text-[11px] font-bold bg-accent hover:bg-accent-dim text-white rounded-lg transition-colors cursor-pointer"
+                title="Iniciar sesión directamente">
+                Entrar
+              </button>
             </div>
-            <p class="text-[10px] text-slate-400 line-clamp-1">Docente, Tribunal</p>
-          </button>
-
-          <button
-            type="button"
-            (click)="ingresarComoDemo('Coordinador')"
-            class="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-left transition-all group"
-          >
-            <div class="flex items-center gap-2 mb-0.5">
-              <i class="fa-solid fa-user-tie text-xs text-indigo-600"></i>
-              <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-700">Coordinador</span>
-            </div>
-            <p class="text-[10px] text-slate-400 line-clamp-1">Docente, Coordinador</p>
-          </button>
-
-          <button
-            type="button"
-            (click)="ingresarComoDemo('Ayudante')"
-            class="p-2.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-xl text-left transition-all group"
-          >
-            <div class="flex items-center gap-2 mb-0.5">
-              <i class="fa-solid fa-handshake-angle text-xs text-purple-600"></i>
-              <span class="text-xs font-bold text-slate-800 group-hover:text-purple-700">Ayudante</span>
-            </div>
-            <p class="text-[10px] text-slate-400 line-clamp-1">Bitácoras, informes</p>
-          </button>
-
-          <button
-            type="button"
-            (click)="ingresarComoDemo('Administrador')"
-            class="col-span-2 p-2.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl text-left transition-all group"
-          >
-            <div class="flex items-center gap-2 mb-0.5">
-              <i class="fa-solid fa-shield-halved text-xs text-amber-600"></i>
-              <span class="text-xs font-bold text-slate-800 group-hover:text-amber-700">Administrador</span>
-            </div>
-            <p class="text-[10px] text-slate-400 line-clamp-1">Solicitudes, reportes y configuración</p>
-          </button>
+          </div>
         </div>
       </div>
 

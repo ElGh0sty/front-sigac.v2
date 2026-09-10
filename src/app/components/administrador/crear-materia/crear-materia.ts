@@ -5,6 +5,7 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MateriaService } from '../../../services/materia.service';
 import { ClaseDto, ClaseService } from '../../../services/clase.service';
+import { AdminDocenteService } from '../../../services/admin-docente.service';
 
 @Component({
   selector: 'app-crear-materia',
@@ -15,12 +16,9 @@ import { ClaseDto, ClaseService } from '../../../services/clase.service';
 export class CrearMateriaComponent implements OnInit, OnDestroy {
   clases: ClaseDto[] = [];
   private sub?: Subscription;
+  private subDocentes?: Subscription;
 
-  docentes = [
-    { id: 1, nombre: 'Dra. Evelyn Vance' },
-    { id: 2, nombre: 'Dr. Marcus Thorne' },
-    { id: 3, nombre: 'Prof. Sarah Chen' }
-  ];
+  docentes: { id: number; nombre: string }[] = [];
 
   semestres = ['2026-2', '2026-1', '2027-1', '2025-2'];
   grupos = ['Grupo A (Diurno)', 'Grupo B (Tarde)', 'Grupo C (Nocturno)', 'Laboratorio / Práctico'];
@@ -45,10 +43,21 @@ export class CrearMateriaComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private materiaService: MateriaService,
-    private claseService: ClaseService
+    private claseService: ClaseService,
+    private adminDocenteService: AdminDocenteService
   ) {}
 
   ngOnInit() {
+    this.subDocentes = this.adminDocenteService.getDocentes().subscribe(list => {
+      this.docentes = list.map(d => ({
+        id: d.id,
+        nombre: `${d.nombre} ${d.apellido}`.trim() || d.username
+      }));
+      if (this.docentes.length > 0 && !this.nuevaMateria.docenteResponsableId) {
+        this.nuevaMateria.docenteResponsableId = this.docentes[0].id;
+      }
+    });
+
     this.sub = this.claseService.clases$.subscribe(list => {
       this.clases = list;
       
@@ -68,6 +77,7 @@ export class CrearMateriaComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.subDocentes?.unsubscribe();
   }
 
   guardarMateria() {

@@ -166,10 +166,10 @@ const ESTUDIANTES_CALCULO_24: EstudianteMateria[] = [
 const MATERIAS_DEFAULT: MateriaDto[] = [
   {
     id: 101,
-    nombre: 'Cálculo Avanzado',
-    codigo: 'MAT-301',
-    descripcion: 'Derivadas parciales, integrales múltiples y ecuaciones diferenciales aplicadas a ingeniería.',
-    docente: 'Dra. Evelyn Vance',
+    nombre: 'Arquitectura de Software',
+    codigo: 'SOF-501',
+    descripcion: 'Patrones arquitectónicos, diseño basado en componentes, microservicios y sistemas distribuidos en la nube.',
+    docente: 'Dr. Fernando Sarmiento',
     docenteResponsableId: 1,
     creditos: 4,
     semana: 8,
@@ -178,36 +178,36 @@ const MATERIAS_DEFAULT: MateriaDto[] = [
     claseNombre: 'Ingeniería de Software 2026-2',
     semestre: '2026-2',
     grupo: 'Grupo A (Diurno)',
-    ayudantes: ['Ana López', 'Carlos Ruiz'],
+    ayudantes: ['Alejandro García', 'Carlos Ruiz'],
     estudiantes: ESTUDIANTES_CALCULO_24
   },
   {
     id: 102,
-    nombre: 'Mecánica Cuántica',
-    codigo: 'FIS-401',
-    descripcion: 'Principios fundamentales de la física cuántica, dualidad onda-partícula y función de onda.',
-    docente: 'Dr. Marcus Thorne',
+    nombre: 'Estructuras de Datos y Algoritmos',
+    codigo: 'SOF-301',
+    descripcion: 'Árboles, grafos, análisis asintótico de complejidad algorítmica y estructuras avanzadas en memoria.',
+    docente: 'Dra. Patricia Rojas',
     docenteResponsableId: 2,
     creditos: 4,
     semana: 6,
     totalSemanas: 16,
     claseId: 2,
-    claseNombre: 'Ciencias Físicas e Ingeniería 2026-1',
+    claseNombre: 'Ingeniería de Software 2026-1',
     semestre: '2026-1',
-    grupo: 'Grupo Teórico',
+    grupo: 'Grupo Teórico-Práctico',
     ayudantes: ['Sebastián Gómez'],
     estudiantes: ESTUDIANTES_CALCULO_24.slice(0, 18).map(e => ({
       ...e,
-      carrera: 'Ciencias Físicas e Ingeniería',
-      matricula: e.matricula?.replace('IS', 'FIS')
+      carrera: 'Ingeniería de Software',
+      matricula: e.matricula
     }))
   },
   {
     id: 103,
-    nombre: 'Redes Neuronales e IA',
-    codigo: 'CMP-501',
-    descripcion: 'Modelos de aprendizaje profundo, arquitecturas convolucionales y transformers.',
-    docente: 'Prof. Sarah Chen',
+    nombre: 'Sistemas Operativos y Redes',
+    codigo: 'RED-401',
+    descripcion: 'Gestión de procesos, concurrencia, memoria virtual, protocolos TCP/IP y arquitectura de redes empresariales.',
+    docente: 'Ing. Roberto Valenzuela',
     docenteResponsableId: 3,
     creditos: 4,
     semana: 10,
@@ -215,12 +215,12 @@ const MATERIAS_DEFAULT: MateriaDto[] = [
     claseId: 1,
     claseNombre: 'Ingeniería de Software 2026-2',
     semestre: '2026-2',
-    grupo: 'Laboratorio Avanzado',
-    ayudantes: ['Elena Torres'],
+    grupo: 'Laboratorio de Redes',
+    ayudantes: ['María López'],
     estudiantes: ESTUDIANTES_CALCULO_24.slice(0, 20).map(e => ({
       ...e,
-      carrera: 'Inteligencia Artificial y Computación',
-      matricula: e.matricula?.replace('IS', 'IA')
+      carrera: 'Ingeniería de Software',
+      matricula: e.matricula
     }))
   }
 ];

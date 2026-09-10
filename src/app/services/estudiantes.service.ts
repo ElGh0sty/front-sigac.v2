@@ -59,36 +59,14 @@ export class EstudiantesService {
         jobId: res?.JobId ?? res?.jobId,
         totalFilasProcesadas: res?.TotalFilasProcesadas ?? res?.totalFilasProcesadas
       } as BulkUploadResponseDto)),
-      catchError(() => {
-        // Fallback simulado para entorno de pruebas / preview sin backend .NET activo
-        const extension = archivo.name.split('.').pop()?.toLowerCase();
-        const baseNombre = archivo.name.replace(/\.[^/.]+$/, '');
-        const mockResponse: BulkUploadResponseDto = {
-          createdCount: 14,
-          createdUsernames: [
-            'sofia.navarrete',
-            'mateo.castillo',
-            'domenic.alvarez',
-            'joaquin.paredes',
-            'camila.mendez',
-            'sebastian.cruz',
-            'daniela.herrera',
-            'martin.lozano',
-            'paula.guerrero',
-            'emilio.rosero',
-            'juliana.ibarra',
-            'gabriel.montes',
-            'natalia.solis',
-            'leonardo.vega'
-          ],
-          errors: [
-            'Fila 4: La cédula "1723489110" ya se encuentra registrada en el sistema académico.',
-            'Fila 18: Correo institucional inválido ("estudiante_invalido@gmail.com"). Debe pertenecer al dominio @universidad.edu'
-          ],
-          jobId: 'job-' + Date.now(),
-          totalFilasProcesadas: 16
-        };
-        return of(mockResponse);
+      catchError((err) => {
+        const errorMsg = err?.error?.message || err?.message || 'No fue posible conectar con el endpoint POST /api/estudiantes/bulk-upload del servidor backend .NET.';
+        return of({
+          createdCount: 0,
+          createdUsernames: [],
+          errors: [`Fallo en la comunicación con el servidor: ${errorMsg}`],
+          totalFilasProcesadas: 0
+        } as BulkUploadResponseDto);
       })
     );
   }
@@ -176,19 +154,16 @@ export class EstudiantesService {
   getResultadoImportacion(jobId: string): Observable<ImportJobResultDto> {
     return this.http.get<ImportJobResultDto>(`${this.apiUrl}/imports/${jobId}/result`).pipe(
       catchError(() => {
-        const mockJob: ImportJobResultDto = {
+        return of({
           jobId,
-          estado: 'Completado',
-          fechaInicio: new Date(Date.now() - 10000).toISOString(),
+          estado: 'Fallido',
+          fechaInicio: new Date().toISOString(),
           fechaFin: new Date().toISOString(),
-          totalRegistros: 15,
-          exitosos: 14,
-          fallidos: 1,
-          detallesErrores: [
-            { fila: 7, cedula: '1720098112', error: 'Cédula duplicada en el archivo' }
-          ]
-        };
-        return of(mockJob);
+          totalRegistros: 0,
+          exitosos: 0,
+          fallidos: 0,
+          detallesErrores: []
+        } as ImportJobResultDto);
       })
     );
   }

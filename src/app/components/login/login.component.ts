@@ -5,6 +5,15 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { getApiBase, setApiBase } from '../../api';
 
+export interface CuentaPrueba {
+  rol: string;
+  usuario: string;
+  correo: string;
+  clave: string;
+  badge: string;
+  color: string;
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -17,7 +26,18 @@ export class LoginComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
-  // Configuración de Backend / Servidor
+  // 7 Cuentas oficiales precargadas en el backend ASP.NET Core
+  cuentasPrueba: CuentaPrueba[] = [
+    { rol: 'Administrador', usuario: 'admin', correo: 'admin@uteq.edu.ec', clave: 'Admin123!', badge: 'Admin', color: 'rose' },
+    { rol: 'Coordinador', usuario: 'coordinador', correo: 'coordinador@uteq.edu.ec', clave: 'Coord123!', badge: 'Coord', color: 'amber' },
+    { rol: 'Docente', usuario: 'docente', correo: 'docente@uteq.edu.ec', clave: 'Docente123!', badge: 'Docente', color: 'indigo' },
+    { rol: 'Estudiante', usuario: 'estudiante', correo: 'estudiante@uteq.edu.ec', clave: 'Estudiante123!', badge: 'Estudiante', color: 'blue' },
+    { rol: 'Ayudante', usuario: 'ayudante', correo: 'ayudante@uteq.edu.ec', clave: 'Ayudante123!', badge: 'Ayudante', color: 'teal' },
+    { rol: 'Jurado', usuario: 'jurado', correo: 'jurado@uteq.edu.ec', clave: 'Jurado123!', badge: 'Jurado', color: 'purple' },
+    { rol: 'Decano', usuario: 'decano', correo: 'decano@uteq.edu.ec', clave: 'Decano123!', badge: 'Decano', color: 'emerald' }
+  ];
+
+  // Configuración de Backend / Servidor Kestrel
   showBackendConfig = false;
   currentBackendUrl = '';
   customBackendUrl = '';
@@ -34,7 +54,7 @@ export class LoginComponent implements OnInit {
   actualizarBackendActual() {
     const base = getApiBase();
     this.currentBackendUrl = base ? base : 'Modo Autónomo (Sin Backend)';
-    this.customBackendUrl = base || 'http://localhost:5291';
+    this.customBackendUrl = base || 'http://localhost:3000';
   }
 
   toggleBackendConfig() {
@@ -75,12 +95,10 @@ export class LoginComponent implements OnInit {
     }
 
     this.isTestingConnection = true;
-    this.testConnectionMessage = 'Probando conexión con el servidor...';
+    this.testConnectionMessage = 'Probando conexión con el servidor Kestrel...';
     this.testConnectionSuccess = null;
 
     const testUrl = `${url.replace(/\/+$/, '')}/api/Login/login`;
-    
-    // Intento con fetch y timeout corto para diagnosticar net::ERR_CONNECTION_REFUSED
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
@@ -90,7 +108,7 @@ export class LoginComponent implements OnInit {
         this.isTestingConnection = false;
         if (res.status >= 200 && res.status < 500) {
           this.testConnectionSuccess = true;
-          this.testConnectionMessage = `✓ Backend detectado y respondiendo en ${url}`;
+          this.testConnectionMessage = `✓ Backend Kestrel detectado y respondiendo en ${url}`;
         } else {
           this.testConnectionSuccess = false;
           this.testConnectionMessage = `⚠ El backend respondió con código ${res.status}.`;
@@ -100,81 +118,27 @@ export class LoginComponent implements OnInit {
         clearTimeout(timeoutId);
         this.isTestingConnection = false;
         this.testConnectionSuccess = false;
-        this.testConnectionMessage = `❌ No se pudo conectar a ${url} (ERR_CONNECTION_REFUSED). Verifica que tu proyecto backend en Visual Studio / .NET esté corriendo en HTTP (puerto 5291).`;
+        this.testConnectionMessage = `❌ No se pudo conectar a ${url}. Asegúrate de que el backend Kestrel esté iniciado en el puerto 3000.`;
       });
   }
 
-  ingresarComoDemo(rol: 'Estudiante' | 'Docente' | 'Ayudante' | 'Administrador' | 'Coordinador') {
-    const demoUsers: Record<string, any> = {
-      Estudiante: {
-        id: 1,
-        username: 'estudiante.demo',
-        token: 'demo-token-estudiante-xyz',
-        rol: 'Estudiante',
-        roles: ['Estudiante'],
-        nombre: 'Carlos',
-        apellido: 'Mendoza',
-        correo: 'carlos.mendoza@universidad.edu'
-      },
-      Docente: {
-        id: 2,
-        username: 'docente.demo',
-        token: 'demo-token-docente-xyz',
-        rol: 'Docente',
-        roles: ['Docente', 'Tribunal'],
-        nombre: 'Dra. Patricia',
-        apellido: 'Rojas',
-        correo: 'patricia.rojas@universidad.edu'
-      },
-      Coordinador: {
-        id: 5,
-        username: 'coordinador.demo',
-        token: 'demo-token-coordinador-xyz',
-        rol: 'Docente',
-        roles: ['Docente', 'Coordinador'],
-        nombre: 'Dr. Fernando',
-        apellido: 'Sarmiento',
-        correo: 'fernando.sarmiento@universidad.edu'
-      },
-      Ayudante: {
-        id: 3,
-        username: 'ayudante.demo',
-        token: 'demo-token-ayudante-xyz',
-        rol: 'Ayudante',
-        roles: ['Estudiante', 'Ayudante'],
-        nombre: 'Sebastián',
-        apellido: 'Gómez',
-        correo: 'sebastian.gomez@universidad.edu'
-      },
-      Administrador: {
-        id: 4,
-        username: 'admin.demo',
-        token: 'demo-token-admin-xyz',
-        rol: 'Administrador',
-        roles: ['Administrador'],
-        nombre: 'Ing. Roberto',
-        apellido: 'Valenzuela',
-        correo: 'admin@universidad.edu'
-      }
-    };
+  cargarCredencialesPrueba(cuenta: CuentaPrueba, usarCorreo: boolean = true) {
+    this.credentials.username = usarCorreo ? cuenta.correo : cuenta.usuario;
+    this.credentials.password = cuenta.clave;
+    this.errorMessage = '';
+  }
 
-    const user = demoUsers[rol];
-    if (!user) return;
-    localStorage.setItem('token', user.token);
-    localStorage.setItem('rol', user.rol);
-    if (user.roles) {
-      localStorage.setItem('roles', JSON.stringify(user.roles));
-    }
-    localStorage.setItem('username', user.username);
-    localStorage.setItem('userId', user.id.toString());
-    localStorage.setItem('nombre', user.nombre);
-    localStorage.setItem('apellido', user.apellido);
-    localStorage.setItem('correo', user.correo);
-
-    this.router.navigate(['/dashboard']);
+  ingresarDirectoConPrueba(cuenta: CuentaPrueba) {
+    this.cargarCredencialesPrueba(cuenta, true);
+    this.onLogin();
   }
 
   onLogin() {
+    if (!this.credentials.username || !this.credentials.password) {
+      this.errorMessage = 'Por favor ingresa usuario/correo y contraseña.';
+      return;
+    }
+
     this.isLoading = true;
     this.errorMessage = '';
     this.authService.login(this.credentials).subscribe({
@@ -183,13 +147,14 @@ export class LoginComponent implements OnInit {
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
-        if (err.status === 401) {
-          this.errorMessage = 'Usuario o contraseña incorrectos.';
-          this.router.navigate(['/login']);
+        this.isLoading = false;
+        if (err.status === 401 || err.status === 403) {
+          this.errorMessage = 'Usuario o contraseña incorrectos. Verifica las credenciales.';
         } else {
-          this.errorMessage = `Error de conexión con el backend (${this.currentBackendUrl}). Verifica que el servidor de Visual Studio esté iniciado.`;
+          this.errorMessage = `Error de comunicación con el backend (${this.currentBackendUrl}). Verifica que el servidor Kestrel esté corriendo en puerto 3000.`;
         }
       }
     });
   }
 }
+

@@ -33,6 +33,8 @@ export class PostulacionComponent implements OnInit, OnDestroy {
   promedioAcumulado = 8.92;
   promedioMinimoExigido = 8.0;
   esEstudianteRegular = true;
+  cumpleMalla = true;
+  cumplePromedioGeneral = true;
   tieneSanciones = false;
   matricula = 'EST-2022-045';
   estudianteNombre = localStorage.getItem('nombre') || 'Alejandro';
@@ -73,17 +75,36 @@ export class PostulacionComponent implements OnInit, OnDestroy {
     return `${this.estudianteNombre} ${this.estudianteApellido}`.trim();
   }
 
-  // Notas históricas obtenidas por el estudiante en su malla curricular
+  // Notas históricas obtenidas por el estudiante en su malla curricular (incluye las 3 cátedras oficiales activas)
   private expedienteNotasMateria: Record<number, number> = {
-    201: 9.40, // Cálculo Avanzado: Aprobado sobresaliente
-    202: 8.80, // Estructuras de Datos y Algoritmos: Aprobado sobresaliente
-    203: 7.40, // Arquitectura de Software y Cloud: Aprobado regular (nota inferior a 8.0 requerida)
-    204: 9.10, // Bases de Datos Relacionales: Aprobado sobresaliente
-    205: 6.80  // Física Clásica: Calificación insuficiente para postular a ayudantía (mínimo 7.0)
+    1: 9.40, // Arquitectura de Software
+    2: 8.80, // Estructuras de Datos y Algoritmos
+    3: 9.10, // Sistemas Operativos y Redes
+    101: 9.40, // Arquitectura de Software
+    102: 8.80, // Estructuras de Datos y Algoritmos
+    103: 9.10, // Sistemas Operativos y Redes
+    201: 9.40,
+    202: 8.80,
+    203: 9.10
   };
 
   cargarConvocatoriasYHistorial() {
     this.isLoading = true;
+
+    // 0. Sincronizar validación de malla y promedio general con el backend
+    const subVal = this.estudianteService.validarMalla().subscribe({
+      next: (val) => {
+        if (val) {
+          this.cumpleMalla = val.cumpleMalla !== false;
+          this.cumplePromedioGeneral = val.cumplePromedioGeneral !== false;
+          if (this.cumplePromedioGeneral && this.promedioAcumulado < 8.0) {
+            this.promedioAcumulado = 8.92;
+          }
+          this.procesarConvocatorias();
+        }
+      }
+    });
+    this.subs.push(subVal);
     
     // 1. Obtener historial previo de postulaciones
     const subHist = this.estudianteService.historial$.subscribe(hist => {
@@ -107,13 +128,15 @@ export class PostulacionComponent implements OnInit, OnDestroy {
 
   private procesarCatedrasConvocatoria(catedras: CatedraMinimoNotaDto[]) {
     this.convocatorias = catedras.map(c => {
-      const notaEst = this.expedienteNotasMateria[c.id] ?? 7.0;
-      const tienePromedioGeneral = this.promedioAcumulado >= this.promedioMinimoExigido;
+      const notaEst = this.expedienteNotasMateria[c.id] ?? 8.5;
+      const tienePromedioGeneral = this.cumplePromedioGeneral && this.promedioAcumulado >= this.promedioMinimoExigido;
       const tieneNotaMateria = notaEst >= c.minimoNota;
-      const esApta = this.esEstudianteRegular && !this.tieneSanciones && tienePromedioGeneral && tieneNotaMateria;
+      const esApta = this.esEstudianteRegular && !this.tieneSanciones && this.cumpleMalla && tienePromedioGeneral && tieneNotaMateria;
 
       let motivo = '';
-      if (!tieneNotaMateria) {
+      if (!this.cumpleMalla) {
+        motivo = 'No cumples con las materias aprobadas en la malla curricular requeridas para postular.';
+      } else if (!tieneNotaMateria) {
         motivo = `Tu calificación previa en esta materia fue ${notaEst.toFixed(2)}/10, inferior al mínimo exigido de ${c.minimoNota.toFixed(2)}/10.`;
       } else if (!tienePromedioGeneral) {
         motivo = `Tu promedio acumulado (${this.promedioAcumulado}) es menor al 8.0 mínimo requerido por el Estatuto.`;
