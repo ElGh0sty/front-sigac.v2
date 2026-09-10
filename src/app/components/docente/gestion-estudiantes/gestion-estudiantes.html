@@ -335,7 +335,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
-                @for (est of estudiantesFiltrados; track est.id) {
+                @for (est of estudiantesFiltrados; track (est.id + '_' + $index)) {
                   <tr class="hover:bg-slate-50/70 transition-colors cursor-pointer" (click)="abrirFichaEstudiante(est)">
                     <!-- Estudiante -->
                     <td class="py-3 px-4">
@@ -459,7 +459,7 @@
       <!-- VISTA 2: TARJETAS / MOSAICO -->
       @if (vistaModo === 'tarjetas') {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-          @for (est of estudiantesFiltrados; track est.id) {
+          @for (est of estudiantesFiltrados; track (est.id + '_' + $index)) {
             <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col justify-between"
                  (click)="abrirFichaEstudiante(est)">
               <div>
@@ -570,6 +570,13 @@
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-2xl">
           <h3 class="text-sm font-bold text-slate-900 mb-1">Matricular Estudiante Individualmente</h3>
           <p class="text-xs text-slate-500 mb-5">Ingresa los datos oficiales del alumno para vincularlo a {{ materiaSeleccionada?.nombre }}.</p>
+
+          @if (errorMessage) {
+            <div class="mb-4 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -694,7 +701,7 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            @for (dir of directorioGeneral; track dir.id) {
+            @for (dir of directorioGeneral; track (dir.id + '_' + $index)) {
               <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between gap-3">
                 <div class="min-w-0">
                   <h4 class="text-xs font-bold text-slate-900 truncate">{{ dir.nombre }}</h4>

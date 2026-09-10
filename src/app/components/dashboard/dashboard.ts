@@ -20,29 +20,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private sub?: Subscription;
 
   // --- Datos del Estudiante ---
-  materiasEstudiante = [
-    {
-      id: 1,
-      catedraId: 101,
-      catedra: { id: 101, nombre: 'Cálculo Avanzado', docente: { username: 'Dra. Evelyn Vance' } },
-      promedioActual: 4.8,
-      alertaRendimiento: false
-    },
-    {
-      id: 2,
-      catedraId: 102,
-      catedra: { id: 102, nombre: 'Mecánica Cuántica', docente: { username: 'Dr. Marcus Thorne' } },
-      promedioActual: 4.5,
-      alertaRendimiento: false
-    },
-    {
-      id: 3,
-      catedraId: 103,
-      catedra: { id: 103, nombre: 'Redes Neuronales', docente: { username: 'Prof. Sarah Chen' } },
-      promedioActual: 4.9,
-      alertaRendimiento: false
-    }
-  ];
+  materiasEstudiante: any[] = [];
+  estadisticasEstudiante = {
+    promedio: 0,
+    materiasActivas: 0,
+    asistencia: 0,
+    creditosAprobados: 0
+  };
 
   // --- Datos del Ayudante / Docente ---
   dashboardAyudante = {
@@ -69,15 +53,60 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (this.rol === 'Estudiante') {
+      this.materiaService.refreshMaterias().subscribe();
+    }
+
     this.sub = this.materiaService.materias$.subscribe(list => {
       this.dashboardAdmin.materias = list.length;
-      this.materiasEstudiante = list.map((m, idx) => ({
-        id: idx + 1,
-        catedraId: m.id,
-        catedra: { id: m.id, nombre: m.nombre, docente: { username: m.docente || 'Docente' } },
-        promedioActual: 4.8,
-        alertaRendimiento: false
-      }));
+
+      const correoUsuario = (localStorage.getItem('correo') || '').toLowerCase().trim();
+      const userId = Number(localStorage.getItem('userId')) || 1;
+
+      this.materiasEstudiante = list.map((m, idx) => {
+        // Encontrar datos del estudiante logueado si están disponibles en la materia
+        const estData = m.estudiantes?.find(e =>
+          (correoUsuario && e.correo && e.correo.toLowerCase() === correoUsuario) ||
+          Number(e.id) === userId || Number(e.estudianteId) === userId
+        );
+
+        const notaActual = estData?.nota !== undefined ? estData.nota : 4.8;
+        const asistenciaActual = estData?.asistencia !== undefined ? estData.asistencia : 96;
+
+        return {
+          id: idx + 1,
+          catedraId: m.id,
+          catedra: { id: m.id, nombre: m.nombre, docente: { username: m.docente || 'Docente Titular' } },
+          promedioActual: notaActual,
+          asistencia: asistenciaActual,
+          alertaRendimiento: notaActual < 3.0
+        };
+      });
+
+      // Cálculo de estadísticas ÚNICAMENTE sobre las materias reales del usuario
+      if (this.materiasEstudiante.length === 0) {
+        this.estadisticasEstudiante = {
+          promedio: 0,
+          materiasActivas: 0,
+          asistencia: 0,
+          creditosAprobados: 0
+        };
+      } else {
+        const sumaPromedios = this.materiasEstudiante.reduce((sum, m) => sum + (m.promedioActual || 0), 0);
+        const sumaAsistencias = this.materiasEstudiante.reduce((sum, m) => sum + (m.asistencia || 0), 0);
+        const totalCreditos = list.reduce((sum, m) => sum + (m.creditos || 4), 0);
+
+        this.estadisticasEstudiante = {
+          promedio: Number((sumaPromedios / this.materiasEstudiante.length).toFixed(2)),
+          materiasActivas: this.materiasEstudiante.length,
+          asistencia: Number((sumaAsistencias / this.materiasEstudiante.length).toFixed(1)),
+          creditosAprobados: totalCreditos
+        };
+      }
+
+      if (this.rol === 'Estudiante' && !this.esAyudante) {
+        setTimeout(() => this.renderChart(), 100);
+      }
     });
 
     this.router.events

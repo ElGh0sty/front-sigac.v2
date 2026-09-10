@@ -136,7 +136,7 @@ export class DirectorioService {
   }
 
   /**
-   * Elimina un estudiante del Directorio General
+   * Elimina un estudiante del Directorio General llamando a DELETE /api/Persona/{id}
    */
   eliminarDelDirectorio(estudianteId: number): Observable<any> {
     const current = this.directorioSubject.value;
@@ -144,7 +144,7 @@ export class DirectorioService {
     this.directorioSubject.next(filtrados);
     this.saveStorage(filtrados);
 
-    return this.http.delete(`${this.apiUrl}/${estudianteId}`).pipe(
+    return this.http.delete(`${getApiBase()}/api/Persona/${estudianteId}`).pipe(
       catchError(() => of({ success: true }))
     );
   }

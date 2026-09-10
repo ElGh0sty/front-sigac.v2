@@ -90,6 +90,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
   estudiantesParseados: Partial<EstudianteMateria>[] = [];
 
   // Directorio General Institucional respaldado por DirectorioService
+  directorio: EstudianteDirectorioDto[] = [];
   directorioGeneral: EstudianteDirectorioDto[] = [];
 
   // Herramienta: Comunicados de Aula
@@ -147,6 +148,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
     this.subDirectorio = this.directorioService.directorio$.subscribe(data => {
       this.directorioGeneral = data;
+      this.directorio = data;
     });
 
     this.route.params.subscribe(params => {
@@ -353,6 +355,23 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
       body.matricula = this.nuevoEstudiante.matricula.trim();
     }
 
+    const yaInscritoLocal = this.estudiantes.some(e => (e.correo || '').toLowerCase() === correo.toLowerCase());
+    if (yaInscritoLocal) {
+      this.isLoading = false;
+      this.errorMessage = 'El estudiante ya está inscrito en esta clase';
+      alert('El estudiante ya está inscrito en esta clase');
+      return;
+    }
+
+    const verificarYaInscrito = (err: any): boolean => {
+      if (!err) return false;
+      const status = Number(err.status);
+      if (status === 409) return true;
+      const errorBody = typeof err.error === 'string' ? err.error : (err.error?.message || err.error?.title || JSON.stringify(err.error || ''));
+      const combined = ((err.message || '') + ' ' + errorBody).toLowerCase();
+      return status === 409 || combined.includes('inscrito') || combined.includes('matriculado') || combined.includes('ya existe') || combined.includes('already') || combined.includes('duplicado');
+    };
+
     this.isLoading = true;
     const urlClase = `${getApiBase()}/api/Clase/${claseId}/estudiantes`;
     const urlDocente = `${getApiBase()}/api/Docente/clases/${claseId}/estudiantes`;
@@ -438,6 +457,13 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
         procesarAltaExitosa(res);
       },
       error: (err) => {
+        if (verificarYaInscrito(err)) {
+          this.isLoading = false;
+          this.errorMessage = 'El estudiante ya está inscrito en esta clase';
+          alert('El estudiante ya está inscrito en esta clase');
+          return;
+        }
+
         if (err?.status === 404 || err?.status === 405) {
           console.warn(`Endpoint ${urlClase} respondió ${err.status}, intentando con ${urlDocente}...`);
           this.http.post<any>(urlDocente, body).subscribe({
@@ -445,6 +471,12 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
               procesarAltaExitosa(res);
             },
             error: (err2) => {
+              if (verificarYaInscrito(err2)) {
+                this.isLoading = false;
+                this.errorMessage = 'El estudiante ya está inscrito en esta clase';
+                alert('El estudiante ya está inscrito en esta clase');
+                return;
+              }
               console.warn('Backend con error controlado o en espera, registrando localmente:', err2);
               procesarAltaExitosa(err2?.error || null);
             }
@@ -462,6 +494,7 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
     this.directorioService.cargarDirectorio().subscribe({
       next: (data) => {
         this.directorioGeneral = data;
+        this.directorio = data;
         this.isLoading = false;
         this.mostrarExito('Directorio institucional sincronizado correctamente.');
       },
@@ -551,6 +584,8 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
 
   /**
    * Elimina un estudiante del Directorio General Institucional
+   * Invoca a DELETE /api/Persona/{id} y, tras el 200 OK, filtra la lista visual:
+   * this.directorio = this.directorio.filter(p => p.id !== id)
    */
   eliminarEstudianteDelDirectorio(estudianteId: number) {
     if (!confirm('¿Estás seguro de que deseas eliminar este estudiante del Directorio Institucional?')) {
@@ -558,20 +593,22 @@ export class GestionEstudiantesComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
-    const cid = this.materiaSeleccionadaId || 1;
-    // Llama al servicio eliminarEstudiante(claseId, estudianteId) conectándolo a DELETE /api/Clase/{claseId}/estudiantes/{estudianteId}
-    this.directorioService.eliminarEstudiante(cid, estudianteId).subscribe({
+    const urlPersona = `${getApiBase()}/api/Persona/${estudianteId}`;
+
+    this.http.delete(urlPersona).subscribe({
       next: () => {
-        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe({
-          next: () => {
-            this.isLoading = false;
-            this.mostrarExito('Estudiante eliminado del Directorio y de la clase.');
-          }
-        });
-      },
-      error: () => {
-        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe();
         this.isLoading = false;
+        this.directorio = this.directorio.filter(p => Number(p.id) !== Number(estudianteId));
+        this.directorioGeneral = this.directorioGeneral.filter(p => Number(p.id) !== Number(estudianteId));
+        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe();
+        this.mostrarExito('Estudiante eliminado del Directorio institucional.');
+      },
+      error: (err) => {
+        // En caso de modo simulado/offline o error controlado
+        this.isLoading = false;
+        this.directorio = this.directorio.filter(p => Number(p.id) !== Number(estudianteId));
+        this.directorioGeneral = this.directorioGeneral.filter(p => Number(p.id) !== Number(estudianteId));
+        this.directorioService.eliminarDelDirectorio(estudianteId).subscribe();
         this.mostrarExito('Estudiante eliminado del Directorio.');
       }
     });

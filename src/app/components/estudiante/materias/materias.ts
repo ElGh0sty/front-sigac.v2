@@ -61,16 +61,14 @@ export class MateriasComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.sub = this.materiaService.materias$.subscribe(list => {
-      this.materias = list;
+      this.materias = list || [];
     });
     this.materiaService.refreshMaterias().subscribe({
       next: (list) => {
-        if (list && list.length > 0) {
-          this.materias = list;
-        }
+        this.materias = list || [];
       },
       error: () => {
-        this.materias = this.materiaService.getMateriasSnapshot();
+        this.materias = this.materiaService.getMateriasSnapshot() || [];
       }
     });
   }

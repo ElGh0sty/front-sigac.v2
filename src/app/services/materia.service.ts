@@ -368,12 +368,13 @@ const ASISTENCIAS_DEFAULT: RegistroAsistenciaDto[] = [
 })
 export class MateriaService {
   private STORAGE_MATERIAS = 'sigac_materias_v2';
+  private STORAGE_MATERIAS_ESTUDIANTE = 'sigac_estudiante_materias_real';
   private STORAGE_RECURSOS = 'sigac_recursos_v2';
   private STORAGE_ACTIVIDADES = 'sigac_actividades_v2';
   private STORAGE_ASISTENCIAS = 'sigac_asistencias_v2';
   private STORAGE_TEMAS = 'sigac_temas_v2';
 
-  private materiasSubject = new BehaviorSubject<MateriaDto[]>(this.loadStorage(this.STORAGE_MATERIAS, MATERIAS_DEFAULT));
+  private materiasSubject = new BehaviorSubject<MateriaDto[]>(this.getInitialMaterias());
   public materias$ = this.materiasSubject.asObservable();
 
   private recursosSubject = new BehaviorSubject<RecursoDto[]>(this.loadStorage(this.STORAGE_RECURSOS, RECURSOS_DEFAULT));
@@ -386,6 +387,25 @@ export class MateriaService {
   public asistencias$ = this.asistenciasSubject.asObservable();
 
   constructor(private http: HttpClient) {}
+
+  private getInitialMaterias(): MateriaDto[] {
+    if (typeof window !== 'undefined') {
+      const rol = localStorage.getItem('rol');
+      if (rol === 'Estudiante') {
+        const stored = localStorage.getItem(this.STORAGE_MATERIAS_ESTUDIANTE);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      }
+    }
+    return this.loadStorage(this.STORAGE_MATERIAS, MATERIAS_DEFAULT);
+  }
 
   private get apiUrl() { return `${getApiBase()}/api/Materia`; }
 
@@ -467,12 +487,16 @@ export class MateriaService {
    * 2. Fallback: GET /api/Estudiante/{id}/validacion-malla
    * 3. Fallback seguro en memoria/localStorage (MATERIAS_DEFAULT) para evitar errores 404.
    */
+  /**
+   * Obtiene única y exclusivamente las materias reales devueltas por la API
+   * para el estudiante logueado (sin materias de relleno ni fallbacks con materias falsas).
+   */
   refreshMaterias(): Observable<MateriaDto[]> {
     const rol = typeof window !== 'undefined' ? (localStorage.getItem('rol') || 'Estudiante') : 'Estudiante';
     const userId = typeof window !== 'undefined' ? (Number(localStorage.getItem('userId')) || 1) : 1;
+    const estudianteId = typeof window !== 'undefined' ? (Number(localStorage.getItem('estudianteId')) || userId) : userId;
+    const correoUsuario = typeof window !== 'undefined' ? (localStorage.getItem('correo') || '').toLowerCase().trim() : '';
 
-    // Si es docente o administrador, Swagger no cuenta con GET /api/materia;
-    // retornar el snapshot local/almacenado para evitar errores 404 en consola.
     if (rol !== 'Estudiante' && rol !== 'Ayudante') {
       return of(this.materiasSubject.value);
     }
@@ -481,26 +505,87 @@ export class MateriaService {
 
     return this.http.get<any>(endpointMisMaterias).pipe(
       tap((res) => {
-        const materiasBackend = Array.isArray(res) ? res : (res?.materias || []);
-        if (materiasBackend.length > 0) {
-          const mapped = materiasBackend.map((item: any, idx: number) => this.mapToMateriaDto(item, idx));
-          const current = this.materiasSubject.value;
-          const merged = [...mapped];
-          current.forEach(c => {
-            if (!merged.some(m => Number(m.id) === Number(c.id) || (m.nombre.toLowerCase() === c.nombre.toLowerCase()))) {
-              merged.push(c);
-            }
-          });
-          this.materiasSubject.next(merged);
-          this.saveStorage(this.STORAGE_MATERIAS, merged);
+        let materiasBackend: any[] = [];
+        if (Array.isArray(res)) {
+          materiasBackend = res;
+        } else if (res && Array.isArray(res.materias)) {
+          materiasBackend = res.materias;
+        } else if (res && Array.isArray(res.clases)) {
+          materiasBackend = res.clases;
+        }
+
+        // Mapear única y exclusivamente las materias reales de la API sin arrays estáticos de relleno
+        const mapped = materiasBackend.map((item: any, idx: number) => this.mapToMateriaDto(item, idx));
+        this.materiasSubject.next(mapped);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(this.STORAGE_MATERIAS_ESTUDIANTE, JSON.stringify(mapped));
         }
       }),
       map(() => this.materiasSubject.value),
       catchError(() => {
-        // En caso de que mis-materias no tenga registros previos o falle, usar las materias del store local
-        return of(this.materiasSubject.value);
+        // En caso de que el backend esté offline o dé 503, obtener únicamente las clases reales del sistema donde el estudiante figure inscrito
+        const materiasReales = this.obtenerClasesRealesEstudiante(estudianteId, correoUsuario);
+        this.materiasSubject.next(materiasReales);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(this.STORAGE_MATERIAS_ESTUDIANTE, JSON.stringify(materiasReales));
+        }
+        return of(materiasReales);
       })
     );
+  }
+
+  getMateriasEstudiante(): Observable<MateriaDto[]> {
+    return this.refreshMaterias();
+  }
+
+  /**
+   * Busca clases reales registradas en la aplicación donde el estudiante figure efectivamente matriculado.
+   * Si no está inscrito en ninguna, retorna array vacío ([]), sin materias falsas de relleno.
+   */
+  private obtenerClasesRealesEstudiante(estudianteId: number, correoUsuario: string): MateriaDto[] {
+    if (typeof window === 'undefined') return [];
+    const clasesEncontradas: MateriaDto[] = [];
+
+    // 1. Revisar materias activas con lista de estudiantes
+    try {
+      const storedMaterias = localStorage.getItem(this.STORAGE_MATERIAS);
+      if (storedMaterias) {
+        const mats: MateriaDto[] = JSON.parse(storedMaterias);
+        if (Array.isArray(mats)) {
+          mats.forEach(m => {
+            const isInscrito = m.estudiantes?.some(e => 
+              (correoUsuario && e.correo && e.correo.toLowerCase() === correoUsuario) ||
+              (Number(e.id) === estudianteId) ||
+              (Number(e.estudianteId) === estudianteId)
+            );
+            if (isInscrito && !clasesEncontradas.some(c => c.id === m.id)) {
+              clasesEncontradas.push(m);
+            }
+          });
+        }
+      }
+    } catch {}
+
+    // 2. Revisar clases de claseService
+    try {
+      const storedClases = localStorage.getItem('sigac_clases_v2');
+      if (storedClases) {
+        const clases = JSON.parse(storedClases);
+        if (Array.isArray(clases)) {
+          clases.forEach((c: any, idx: number) => {
+            const matchId = Array.isArray(c.estudianteIds) && c.estudianteIds.includes(estudianteId);
+            const matchCorreo = Array.isArray(c.estudiantes) && c.estudiantes.some((e: any) => 
+              correoUsuario && e.correo && e.correo.toLowerCase() === correoUsuario
+            );
+            if ((matchId || matchCorreo) && !clasesEncontradas.some(m => m.id === c.id || m.claseId === c.id)) {
+              clasesEncontradas.push(this.mapToMateriaDto(c, idx));
+            }
+          });
+        }
+      }
+    } catch {}
+
+    return clasesEncontradas;
   }
 
   createMateria(dto: CreateMateriaDto): Observable<MateriaDto> {

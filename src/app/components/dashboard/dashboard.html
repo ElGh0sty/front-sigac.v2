@@ -23,21 +23,21 @@
       <div class="w-11 h-11 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent"><i class="fa-solid fa-award text-xl"></i></div>
       <div>
         <p class="text-xs text-slate-500">Promedio Acumulado</p>
-        <p class="text-2xl font-bold text-slate-900">4.84 <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">+0.12</span></p>
+        <p class="text-2xl font-bold text-slate-900">{{ estadisticasEstudiante.promedio | number:'1.2-2' }} <span *ngIf="estadisticasEstudiante.promedio > 0" class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">+0.12</span></p>
       </div>
     </div>
     <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
       <div class="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600"><i class="fa-solid fa-graduation-cap text-xl"></i></div>
       <div>
-        <p class="text-xs text-slate-500">Créditos Aprobados</p>
-        <p class="text-2xl font-bold text-slate-900">114 <span class="text-base text-slate-400 font-medium">/ 120</span></p>
+        <p class="text-xs text-slate-500">Materias Activas</p>
+        <p class="text-2xl font-bold text-slate-900">{{ estadisticasEstudiante.materiasActivas }} <span class="text-base text-slate-400 font-medium">en curso</span></p>
       </div>
     </div>
     <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
       <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-calendar-check text-xl"></i></div>
       <div>
         <p class="text-xs text-slate-500">Asistencia Total</p>
-        <p class="text-2xl font-bold text-slate-900">96.4<span class="text-base text-slate-400 font-medium">%</span></p>
+        <p class="text-2xl font-bold text-slate-900">{{ estadisticasEstudiante.asistencia | number:'1.1-1' }}<span class="text-base text-slate-400 font-medium">%</span></p>
       </div>
     </div>
   </section>
@@ -46,7 +46,7 @@
   <section class="glass-card rounded-2xl overflow-hidden">
     <div class="px-5 md:px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
       <h2 class="text-base font-semibold text-slate-900">Materias en Curso</h2>
-      <button class="text-xs text-accent hover:underline">Ver Historial</button>
+      <button class="text-xs text-accent hover:underline" [routerLink]="['/estudiante/materias']">Ver Mis Asignaturas</button>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -66,6 +66,11 @@
           <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ m.promedioActual }} <span class="text-slate-400 text-xs">({{ (m.promedioActual * 20) | number:'1.0-0' }}%)</span></td>
           <td class="px-4 py-4"><div class="flex items-center gap-2"><div class="flex-1 h-1.5 rounded-full bg-slate-100"><div class="h-full bg-violet-500 rounded-full" [style.width]="(m.promedioActual * 20) + '%'"></div></div><span class="text-xs text-slate-400 w-8 text-right">{{ (m.promedioActual * 20) | number:'1.0-0' }}%</span></div></td>
           <td class="px-5 md:px-6 py-4 text-right"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 text-xs font-medium text-violet-600 border border-violet-100">Top 5%</span></td>
+        </tr>
+        <tr *ngIf="materiasEstudiante.length === 0">
+          <td colspan="5" class="px-5 py-8 text-center text-slate-400 text-xs font-medium">
+            No tienes materias inscritas en este ciclo académico.
+          </td>
         </tr>
         </tbody>
       </table>
