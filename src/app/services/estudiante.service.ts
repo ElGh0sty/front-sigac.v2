@@ -230,8 +230,12 @@ export class EstudianteService {
    * Valida requisitos reglamentarios (cumpleMalla, cumplePromedioGeneral) con el backend
    */
   validarMalla(estudianteId?: number): Observable<{ cumpleMalla: boolean; cumplePromedioGeneral: boolean }> {
-    const id = estudianteId ?? (typeof window !== 'undefined' ? (Number(localStorage.getItem('userId')) || 1) : 1);
-    return this.http.get<{ cumpleMalla: boolean; cumplePromedioGeneral: boolean }>(`${this.apiUrl}/${id}/validacion-malla`).pipe(
+    const rawId = estudianteId ?? (typeof window !== 'undefined' ? (Number(localStorage.getItem('estudianteId')) || Number(localStorage.getItem('userId')) || 0) : 0);
+    // Si no hay un ID de estudiante válido o corresponde al Administrador (ID 1), evitar llamada errónea 404
+    if (!rawId || Number(rawId) === 1) {
+      return of({ cumpleMalla: true, cumplePromedioGeneral: true });
+    }
+    return this.http.get<{ cumpleMalla: boolean; cumplePromedioGeneral: boolean }>(`${this.apiUrl}/${rawId}/validacion-malla`).pipe(
       catchError(() => of({ cumpleMalla: true, cumplePromedioGeneral: true }))
     );
   }

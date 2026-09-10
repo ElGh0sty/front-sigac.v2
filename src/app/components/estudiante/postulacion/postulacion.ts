@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { EstudianteService, HistorialAyudantiaDto } from '../../../services/estudiante.service';
 import { CoordinadorService, CatedraMinimoNotaDto } from '../../../services/coordinador.service';
@@ -60,7 +61,8 @@ export class PostulacionComponent implements OnInit, OnDestroy {
   constructor(
     private estudianteService: EstudianteService,
     private coordinadorService: CoordinadorService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -89,10 +91,43 @@ export class PostulacionComponent implements OnInit, OnDestroy {
   };
 
   cargarConvocatoriasYHistorial() {
+    const token = this.authService.getToken();
+    const currentUser = this.authService.currentUser;
+
+    // Si no hay un usuario autenticado en sesión, redirigir al login
+    if (!token || !currentUser) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // Obtener dinámicamente el ID del usuario en sesión desde el AuthService
+    // (this.authService.currentUser?.id o el campo de ID del estudiante logueado)
+    let estudianteId = this.authService.getEstudianteId() || currentUser.id;
+
+    // Verificar si el rol corresponde a Estudiante o Ayudante
+    const esEstudiante = this.authService.hasAnyRole(['Estudiante', 'Ayudante']) ||
+      (currentUser.rol && ['estudiante', 'ayudante'].some(r => currentUser.rol?.toLowerCase().includes(r)));
+
+    // Si no hay un estudiante logueado (por ejemplo, es Administrador con ID 1), redirigir o verificar perfil
+    if (!esEstudiante || estudianteId === 1) {
+      const idPerfilEstudiante = this.authService.getEstudianteId();
+      if (idPerfilEstudiante && idPerfilEstudiante !== 1) {
+        estudianteId = idPerfilEstudiante;
+      } else {
+        // Redirige al login si no hay un estudiante logueado
+        this.router.navigate(['/login']);
+        return;
+      }
+    }
+
     this.isLoading = true;
 
-    // 0. Sincronizar validación de malla y promedio general con el backend
-    const subVal = this.estudianteService.validarMalla().subscribe({
+    // Actualizar nombre visible del estudiante en la interfaz con el del usuario autenticado
+    if (currentUser.nombre) this.estudianteNombre = currentUser.nombre;
+    if (currentUser.apellido) this.estudianteApellido = currentUser.apellido;
+
+    // 0. Sincronizar validación de malla y promedio general con el backend usando el estudianteId dinámico
+    const subVal = this.estudianteService.validarMalla(estudianteId).subscribe({
       next: (val) => {
         if (val) {
           this.cumpleMalla = val.cumpleMalla !== false;
@@ -202,8 +237,12 @@ export class PostulacionComponent implements OnInit, OnDestroy {
     this.successMessage = '';
     this.errorMessage = '';
 
+    const user = this.authService.currentUser;
+    const estId = this.authService.getEstudianteId() || user?.id;
+
     const payload = {
-      catedraId: this.catedraSeleccionada.id
+      catedraId: this.catedraSeleccionada.id,
+      estudianteId: estId && estId !== 1 ? estId : undefined
     };
 
     this.estudianteService.postularAyudantia(payload).subscribe({

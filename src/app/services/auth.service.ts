@@ -91,13 +91,22 @@ export class AuthService {
           }
 
           const username = res.username || res.Username || rawId;
-          const id = res.id ?? res.Id ?? res.userId ?? res.UserId ?? 1;
+          const estudianteId = res.estudianteId ?? res.EstudianteId;
+          const personaId = res.personaId ?? res.PersonaId;
+          const id = estudianteId ?? res.id ?? res.Id ?? res.userId ?? res.UserId ?? personaId;
           const nombre = res.nombre || res.Nombre || '';
           const apellido = res.apellido || res.Apellido || '';
           const correo = res.correo || res.Correo || res.email || res.Email || (isEmail ? rawId : `${rawId}@uteq.edu.ec`);
 
           localStorage.setItem('username', username);
-          localStorage.setItem('userId', id.toString());
+          if (id !== undefined && id !== null) {
+            localStorage.setItem('userId', id.toString());
+          }
+          if (estudianteId !== undefined && estudianteId !== null) {
+            localStorage.setItem('estudianteId', estudianteId.toString());
+          } else if ((rolPrincipal === 'Estudiante' || rolPrincipal === 'Ayudante') && id && Number(id) !== 1) {
+            localStorage.setItem('estudianteId', id.toString());
+          }
           if (nombre) localStorage.setItem('nombre', nombre);
           if (apellido) localStorage.setItem('apellido', apellido);
           if (correo) localStorage.setItem('correo', correo);
@@ -309,6 +318,7 @@ export class AuthService {
     localStorage.removeItem('roles');
     localStorage.removeItem('username');
     localStorage.removeItem('userId');
+    localStorage.removeItem('estudianteId');
   }
 
   getToken(): string | null {
@@ -390,6 +400,27 @@ export class AuthService {
     return id ? parseInt(id, 10) : null;
   }
 
+  /**
+   * Obtiene dinámicamente el ID del estudiante autenticado.
+   * Evita colisiones con el ID 1 que pertenece al Administrador.
+   */
+  getEstudianteId(): number | null {
+    const estId = localStorage.getItem('estudianteId');
+    if (estId) {
+      const parsed = parseInt(estId, 10);
+      if (!isNaN(parsed) && parsed > 0 && parsed !== 1) return parsed;
+    }
+    const roles = this.getRoles();
+    const rol = this.getRol() || '';
+    const esEst = roles.some(r => r === 'Estudiante' || r === 'Ayudante') ||
+      rol.toLowerCase().includes('estudiante') || rol.toLowerCase().includes('ayudante');
+    if (esEst) {
+      const uId = this.getUserId();
+      if (uId && uId !== 1) return uId;
+    }
+    return null;
+  }
+
   hasRole(role: string): boolean {
     if (!role) return false;
     const target = role.trim().toLowerCase();
@@ -402,20 +433,37 @@ export class AuthService {
     return roles.some(r => this.hasRole(r));
   }
 
-  currentUser(): UserDto | null {
+  /**
+   * Getter reactivo del usuario en sesión actual.
+   * Permite acceder como `this.authService.currentUser?.id`.
+   */
+  get currentUser(): UserDto | null {
     const token = this.getToken();
     if (!token) return null;
     const activeRoles = this.getRoles();
+    const rol = this.getRol() || (activeRoles.length > 0 ? activeRoles[0] : '');
+    const isStudent = activeRoles.some(r => r === 'Estudiante' || r === 'Ayudante') ||
+                      rol.toLowerCase().includes('estudiante') || rol.toLowerCase().includes('ayudante');
+    const estId = this.getEstudianteId();
+    const userId = this.getUserId();
+    const resolvedId = (isStudent && estId) ? estId : (userId ?? 0);
     return {
-      id: this.getUserId() || 1,
+      id: resolvedId,
       username: localStorage.getItem('username') || '',
       token: token,
-      rol: this.getRol() || (activeRoles.length > 0 ? activeRoles[0] : ''),
+      rol: rol,
       roles: activeRoles,
       Roles: activeRoles,
       nombre: localStorage.getItem('nombre') || '',
       apellido: localStorage.getItem('apellido') || '',
       correo: localStorage.getItem('correo') || ''
     };
+  }
+
+  /**
+   * Método compatible para llamadas `this.authService.getCurrentUser()`.
+   */
+  getCurrentUser(): UserDto | null {
+    return this.currentUser;
   }
 }

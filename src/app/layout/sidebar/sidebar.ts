@@ -25,7 +25,7 @@ export class SidebarComponent implements OnInit {
   }
 
   cargarDatosUsuario(): void {
-    const user = this.authService.currentUser();
+    const user = this.authService.currentUser;
     if (user) {
       this.username = user.username || 'Usuario';
       this.nombreCompleto = (user.nombre && user.apellido)
